@@ -8,6 +8,24 @@ permissions:
   contents: read
 
 jobs:
+
+  rust-protocol-tests:
+    name: Rust protocol tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run protocol tests
+        run: cargo test --workspace
   state-machine-tests:
     name: State-machine tests
     runs-on: ubuntu-latest

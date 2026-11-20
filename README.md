@@ -67,7 +67,9 @@ cargo fmt --all -- --check
 cargo test --locked --workspace
 ```
 
-This is still a protocol-core milestone, not a deployed exchange. The BITE order event kind/tags, cross-device/global replay rules, cancellation, partial fills, relay network, Bitcoin Core observer, PSBT parsing, wallet signing, and settlement remain unimplemented. The in-memory replay guard is process-local. The SQLite replay store survives restarts and coordinates processes that share the same local database file, but it is not a distributed database and does not synchronize separate devices or clients. Restore from an old database backup can roll local replay history backward. The Nostr verifier checks event authenticity, not BTC ownership or USD payment. GitHub Actions runs the Node.js and Rust checks with the committed `Cargo.lock` on pushes and pull requests.
+This is still a protocol-core milestone, not a deployed exchange. The BITE order event kind/tags, cross-device/global replay rules, cancellation, partial fills, relay network, Bitcoin Core RPC observer, PSBT parsing/validation, wallet signing, and settlement remain unimplemented. The in-memory replay guard is process-local. The SQLite replay store survives restarts and coordinates processes that share the same local database file, but it is not a distributed database and does not synchronize separate devices or clients. Restore from an old database backup can roll local replay history backward. The Nostr verifier checks event authenticity, not BTC ownership or USD payment.
+
+An isolated Bitcoin Core regtest sandbox and CI smoke test are provided in [docs/REGTEST.md](docs/REGTEST.md). The sandbox forces `regtest`, disables peer networking, publishes no RPC/P2P ports, and mines disposable test blocks. It verifies node startup and chain isolation only; it is not yet a BITE RPC integration or settlement test. GitHub Actions runs the Node.js and Rust checks with the committed `Cargo.lock` on pushes and pull requests.
 
 ## Development stages
 
@@ -78,7 +80,7 @@ This is still a protocol-core milestone, not a deployed exchange. The BITE order
 5. **Limited public test:** testnet/regtest only, public bug bounty or coordinated disclosure process, and no real funds.
 6. **Mainnet decision:** only after legal, security, operational, and independent audit gates are passed.
 
-The BTC/USD order payload contract and current Rust verifier/replay-store boundary are documented in [docs/protocol/BTC_USD_ORDER_V1.md](docs/protocol/BTC_USD_ORDER_V1.md) and [ADR 0002](docs/adr/0002-durable-replay-store.md). The BITE-specific event kind, tags and cross-device replay protocol remain pending.
+The BTC/USD order payload contract and current Rust verifier/replay-store boundary are documented in [docs/protocol/BTC_USD_ORDER_V1.md](docs/protocol/BTC_USD_ORDER_V1.md) and [ADR 0002](docs/adr/0002-durable-replay-store.md). The isolated Bitcoin Core test harness is documented in [docs/REGTEST.md](docs/REGTEST.md). The BITE-specific event kind, tags and cross-device replay protocol remain pending.
 
 ## Security status
 

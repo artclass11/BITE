@@ -1,5 +1,6 @@
 use bite_protocol::{
-    verify_signed_btc_usd_order_event, ProtocolError, ReplayGuard, ValidationPolicy, MAX_EVENT_BYTES,
+    verify_signed_btc_usd_order_event, ProtocolError, ReplayGuard, ValidationPolicy,
+    MAX_EVENT_BYTES,
 };
 use nostr::prelude::*;
 use serde_json::{json, Value};
@@ -222,8 +223,7 @@ fn replay_guard_rejects_same_maker_order_id_republished_in_a_new_event() {
     let second = signed_order_with_keys(second_order, &keys, NOW + 1);
 
     let verified_first = verify_signed_btc_usd_order_event(&first, policy()).unwrap();
-    let verified_second =
-        verify_signed_btc_usd_order_event(&second, policy()).unwrap();
+    let verified_second = verify_signed_btc_usd_order_event(&second, policy()).unwrap();
 
     let mut guard = ReplayGuard::new(16).unwrap();
     assert_eq!(guard.accept(&verified_first, NOW), Ok(()));
@@ -287,10 +287,8 @@ fn replay_guard_prunes_expired_entries_and_rejects_zero_capacity() {
 
     let next_now = NOW + 600;
     let second = signed_order_with_keys(valid_order("", next_now), &keys, next_now);
-    let verified_second = verify_signed_btc_usd_order_event(
-        &second,
-        ValidationPolicy::at(next_now),
-    ).unwrap();
+    let verified_second =
+        verify_signed_btc_usd_order_event(&second, ValidationPolicy::at(next_now)).unwrap();
 
     assert_eq!(guard.accept(&verified_second, next_now), Ok(()));
     assert_eq!(guard.len(), 1);

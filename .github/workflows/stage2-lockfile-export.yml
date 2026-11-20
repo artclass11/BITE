@@ -1,0 +1,38 @@
+name: Temporary Stage 2 lockfile generation
+
+on:
+  push:
+    branches:
+      - feat/rust-protocol-core
+
+permissions:
+  contents: read
+
+jobs:
+  generate-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Generate pinned dependency lockfile
+        run: cargo generate-lockfile
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run protocol tests
+        run: cargo test --locked --workspace
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - name: Export generated lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: bite-stage2-generated-lockfile
+          path: Cargo.lock
+          if-no-files-found: error
+          retention-days: 3

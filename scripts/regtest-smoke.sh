@@ -25,13 +25,31 @@ btc_cli() {
 }
 
 echo "Starting an isolated Bitcoin Core regtest node..."
-if ! compose up --detach --wait --wait-timeout 120 bitcoind; then
-  echo "Bitcoin Core failed its startup/health check; container logs follow:" >&2
+compose up --detach bitcoind
+
+chain_info=""
+last_rpc_error=""
+for attempt in {1..60}; do
+  running_container="$(compose ps --status running --quiet bitcoind)"
+  if [[ -z "$running_container" ]]; then
+    echo "Bitcoin Core container exited before RPC became available; logs follow:" >&2
+    compose logs --no-color bitcoind >&2 || true
+    exit 1
+  fi
+  if chain_info="$(btc_cli getblockchaininfo 2>&1)"; then
+    break
+  else
+    last_rpc_error="$chain_info"
+    chain_info=""
+  fi
+  sleep 2
+done
+
+if [[ -z "$chain_info" ]]; then
+  echo "Bitcoin Core RPC did not become ready. Last RPC error: $last_rpc_error" >&2
   compose logs --no-color bitcoind >&2 || true
   exit 1
 fi
-
-chain_info="$(btc_cli getblockchaininfo)"
 if ! grep -Eq '"chain"[[:space:]]*:[[:space:]]*"regtest"' <<<"$chain_info"; then
   echo "Refusing to continue: node did not report chain=regtest." >&2
   exit 1

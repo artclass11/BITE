@@ -53,6 +53,11 @@ test("zero and out-of-range quantities are rejected", () => {
   assert.throws(() => validate({ sizeSats: (MAX_BITCOIN_SUPPLY_SATS + 1n).toString() }), (error) => error.code === "OUT_OF_RANGE");
 });
 
+test("oversized decimal strings are rejected before integer conversion", () => {
+  assert.throws(() => validate({ sizeSats: "9".repeat(10000) }), (error) => error.code === "OUT_OF_RANGE");
+  assert.throws(() => validate({ priceUsdMicrosPerBtc: "9".repeat(10000) }), (error) => error.code === "OUT_OF_RANGE");
+});
+
 test("order identity fields must have exact 32-byte lowercase hex encoding", () => {
   assert.throws(() => validate({ orderId: "xyz" }), (error) => error.code === "INVALID_ORDER_ID");
   assert.throws(() => validate({ makerPubkey: "C".repeat(64) }), (error) => error.code === "INVALID_PUBKEY");

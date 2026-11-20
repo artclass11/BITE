@@ -7,6 +7,7 @@
 
 use nostr::event::Event;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::fmt;
 
 pub const MARKET_BTC_USD: &str = "BTC-USD";
@@ -45,6 +46,10 @@ pub enum ProtocolError {
     EventMakerMismatch,
     EventTimestampMismatch,
     QuoteOverflow,
+    InvalidReplayGuardCapacity,
+    DuplicateEvent,
+    DuplicateOrder,
+    ReplayGuardAtCapacity,
 }
 
 impl fmt::Display for ProtocolError {
@@ -101,9 +106,99 @@ pub struct BtcUsdOrder {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerifiedBtcUsdOrder {
-    pub order: BtcUsdOrder,
-    pub event_id: String,
-    pub maker_pubkey: String,
+    order: BtcUsdOrder,
+    event_id: String,
+    maker_pubkey: String,
+}
+
+impl VerifiedBtcUsdOrder {
+    pub fn order(&self) -> &BtcUsdOrder {
+        &self.order
+    }
+
+    pub fn event_id(&self) -> &str {
+        &self.event_id
+    }
+
+    pub fn maker_pubkey(&self) -> &str {
+        &self.maker_pubkey
+    }
+}
+
+/// Bounded, in-process duplicate suppression for a single client order-ingest
+/// loop. Feed every relay delivery through the same guard before displaying or
+/// matching an order. This is not durable or shared between devices/processes:
+/// a production client must persist the same keys atomically across restarts.
+#[derive(Debug)]
+pub struct ReplayGuard {
+    max_entries: usize,
+    seen_event_ids: HashMap<String, u64>,
+    seen_orders: HashMap<(String, String), u64>,
+}
+
+impl ReplayGuard {
+    /// Create a guard with a fixed maximum number of simultaneously live
+    /// maker/order-ID pairs. It never evicts unexpired entries to make room.
+    pub fn new(max_entries: usize) -> Result<Self, ProtocolError> {
+        if max_entries == 0 {
+            return Err(ProtocolError::InvalidReplayGuardCapacity);
+        }
+        Ok(Self {
+            max_entries,
+            seen_event_ids: HashMap::with_capacity(max_entries),
+            seen_orders: HashMap::with_capacity(max_entries),
+        })
+    }
+
+    /// Accept one cryptographically verified order, or reject it as a replay.
+    /// Callers must serialize access to one guard for all relay connections.
+    pub fn accept(
+        &mut self,
+        verified: &VerifiedBtcUsdOrder,
+        now_seconds: u64,
+    ) -> Result<(), ProtocolError> {
+        self.prune_expired(now_seconds);
+
+        if verified.order.expires_at <= now_seconds {
+            return Err(ProtocolError::OrderExpired);
+        }
+        if self.seen_event_ids.contains_key(&verified.event_id) {
+            return Err(ProtocolError::DuplicateEvent);
+        }
+
+        let order_key = (
+            verified.maker_pubkey.clone(),
+            verified.order.order_id.clone(),
+        );
+        if self.seen_orders.contains_key(&order_key) {
+            return Err(ProtocolError::DuplicateOrder);
+        }
+        if self.seen_orders.len() >= self.max_entries {
+            return Err(ProtocolError::ReplayGuardAtCapacity);
+        }
+
+        let expires_at = verified.order.expires_at;
+        self.seen_event_ids
+            .insert(verified.event_id.clone(), expires_at);
+        self.seen_orders.insert(order_key, expires_at);
+        Ok(())
+    }
+
+    /// Remove only expired entries. Live orders are never silently evicted.
+    pub fn prune_expired(&mut self, now_seconds: u64) {
+        self.seen_event_ids
+            .retain(|_, expires_at| *expires_at > now_seconds);
+        self.seen_orders
+            .retain(|_, expires_at| *expires_at > now_seconds);
+    }
+
+    pub fn len(&self) -> usize {
+        self.seen_orders.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.seen_orders.is_empty()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

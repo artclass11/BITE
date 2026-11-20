@@ -5,9 +5,7 @@
 //! share the same database file. It is still local to that file: it does not
 //! provide network-wide or cross-device consensus.
 
-use crate::{
-    ProtocolError, VerifiedBtcUsdOrder, MAX_REPLAY_GUARD_ENTRIES,
-};
+use crate::{ProtocolError, VerifiedBtcUsdOrder, MAX_REPLAY_GUARD_ENTRIES};
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use std::fmt;
 use std::path::Path;
@@ -37,7 +35,10 @@ impl fmt::Display for ReplayStoreError {
             Self::Protocol(error) => write!(f, "replay rejected: {error}"),
             Self::Storage(error) => write!(f, "replay database error: {error}"),
             Self::ConfigurationMismatch => {
-                write!(f, "replay database capacity differs from configured capacity")
+                write!(
+                    f,
+                    "replay database capacity differs from configured capacity"
+                )
             }
             Self::UnsupportedSchemaVersion(version) => {
                 write!(f, "unsupported replay database schema version: {version}")
@@ -100,10 +101,7 @@ impl DurableReplayStore {
     /// The first open fixes the capacity in the database metadata. Later opens
     /// must use the same value so an accidental configuration change cannot
     /// silently increase or decrease the admission limit.
-    pub fn open(
-        path: impl AsRef<Path>,
-        max_entries: usize,
-    ) -> Result<Self, ReplayStoreError> {
+    pub fn open(path: impl AsRef<Path>, max_entries: usize) -> Result<Self, ReplayStoreError> {
         validate_capacity(max_entries)?;
         let connection = Connection::open(path)?;
         Self::from_connection(connection, max_entries)
@@ -146,10 +144,9 @@ impl DurableReplayStore {
                 ON replay_entries (expires_at);",
         )?;
 
-        let configured_capacity = i64::try_from(max_entries)
-            .map_err(|_| ProtocolError::InvalidReplayGuardCapacity)?;
-        let transaction =
-            connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let configured_capacity =
+            i64::try_from(max_entries).map_err(|_| ProtocolError::InvalidReplayGuardCapacity)?;
+        let transaction = connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
         let stored: Option<(i64, i64)> = transaction
             .query_row(
                 "SELECT schema_version, max_entries
@@ -204,13 +201,11 @@ impl DurableReplayStore {
             return Err(ProtocolError::OrderExpired.into());
         }
 
-        let transaction =
-            self.connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
 
-        transaction.execute(
-            "DELETE FROM replay_entries WHERE expires_at <= ?1",
-            [now],
-        )?;
+        transaction.execute("DELETE FROM replay_entries WHERE expires_at <= ?1", [now])?;
 
         let duplicate_event: bool = transaction.query_row(
             "SELECT EXISTS(
@@ -235,11 +230,8 @@ impl DurableReplayStore {
             return Err(ProtocolError::DuplicateOrder.into());
         }
 
-        let count: i64 = transaction.query_row(
-            "SELECT COUNT(*) FROM replay_entries",
-            [],
-            |row| row.get(0),
-        )?;
+        let count: i64 =
+            transaction.query_row("SELECT COUNT(*) FROM replay_entries", [], |row| row.get(0))?;
         let count = usize::try_from(count).map_err(|_| ReplayStoreError::InvalidEntryCount)?;
         if count >= self.max_entries {
             return Err(ProtocolError::ReplayGuardAtCapacity.into());
@@ -263,12 +255,11 @@ impl DurableReplayStore {
     pub fn prune_expired(&mut self, now_seconds: u64) -> Result<usize, ReplayStoreError> {
         let now = i64::try_from(now_seconds)
             .map_err(|_| ReplayStoreError::Protocol(ProtocolError::ReplayTimestampOutOfRange))?;
-        let transaction =
-            self.connection.transaction_with_behavior(TransactionBehavior::Immediate)?;
-        let removed = transaction.execute(
-            "DELETE FROM replay_entries WHERE expires_at <= ?1",
-            [now],
-        )?;
+        let transaction = self
+            .connection
+            .transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let removed =
+            transaction.execute("DELETE FROM replay_entries WHERE expires_at <= ?1", [now])?;
         transaction.commit()?;
         Ok(removed)
     }
@@ -276,11 +267,9 @@ impl DurableReplayStore {
     /// Return the number of rows currently stored, including entries that
     /// have expired but have not yet been pruned by an admission or prune call.
     pub fn len(&self) -> Result<usize, ReplayStoreError> {
-        let count: i64 = self.connection.query_row(
-            "SELECT COUNT(*) FROM replay_entries",
-            [],
-            |row| row.get(0),
-        )?;
+        let count: i64 =
+            self.connection
+                .query_row("SELECT COUNT(*) FROM replay_entries", [], |row| row.get(0))?;
         usize::try_from(count).map_err(|_| ReplayStoreError::InvalidEntryCount)
     }
 
@@ -359,10 +348,7 @@ mod tests {
         }
     }
 
-    fn expect_protocol_error(
-        result: Result<(), ReplayStoreError>,
-        expected: ProtocolError,
-    ) {
+    fn expect_protocol_error(result: Result<(), ReplayStoreError>, expected: ProtocolError) {
         assert!(matches!(
             result,
             Err(ReplayStoreError::Protocol(actual)) if actual == expected
@@ -406,10 +392,7 @@ mod tests {
         let order = verified('1', 'a', 'b', 300);
 
         assert!(first.accept(&order, 150).is_ok());
-        expect_protocol_error(
-            second.accept(&order, 150),
-            ProtocolError::DuplicateEvent,
-        );
+        expect_protocol_error(second.accept(&order, 150), ProtocolError::DuplicateEvent);
         assert_eq!(second.len().unwrap(), 1);
 
         drop(first);
@@ -478,10 +461,7 @@ mod tests {
             ProtocolError::ReplayGuardAtCapacity,
         );
         assert_eq!(store.len().unwrap(), 1);
-        expect_protocol_error(
-            store.accept(&first, 151),
-            ProtocolError::DuplicateEvent,
-        );
+        expect_protocol_error(store.accept(&first, 151), ProtocolError::DuplicateEvent);
     }
 
     #[test]

@@ -166,13 +166,8 @@ test("an unmatched order may expire or be cancelled, but a matched trade cannot 
   assert.throws(() => applyTradeEvent(matched, { type: "CANCEL" }), (error) => error.code === "INVALID_STATE");
 });
 
-test("a refund is not final until its own confirmation policy is met, and refund reorgs reopen the dispute", () => {
-  let trade = applyTradeEvent(broadcastTrade(), {
-    type: "RAISE_DISPUTE", disputeCode: "manual-dispute"
-  });
-  trade = applyTradeEvent(trade, {
-    type: "REFUND_BROADCAST", refundIntentHash: HASH_A, refundTxid: HASH_B
-  });
+test("a refund must be bound before final confirmation, and refund reorgs reopen it", () => {
+  let trade = refundBroadcastTrade();
   assert.throws(() => applyTradeEvent(trade, {
     type: "REFUND_CONFIRMED", refundIntentHash: HASH_A, refundTxid: HASH_B,
     blockHash: HASH_D, blockHeight: 102, confirmations: 2
@@ -185,6 +180,7 @@ test("a refund is not final until its own confirmation policy is met, and refund
   trade = applyTradeEvent(trade, { type: "REFUND_REORG_OBSERVED", orphanedBlockHash: HASH_D });
   assert.equal(trade.state, TradeState.REFUND_BROADCAST);
   assert.equal(trade.refundTxid, HASH_B);
+  assert.equal(trade.refundBlockHash, null);
 });
 
 test("unknown events fail closed", () => {

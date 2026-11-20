@@ -1,0 +1,40 @@
+# Secrets and wallet material
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.seed
+*.wallet
+wallets/
+secrets/
+credentials/
+
+# Local databases and logs
+*.sqlite
+*.sqlite3
+*.db
+*.log
+data/
+logs/
+
+# Rust build outputs
+/target/
+
+# Node build outputs
+/node_modules/
+/.next/
+/dist/
+/build/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

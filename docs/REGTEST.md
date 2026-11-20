@@ -29,7 +29,7 @@ To delete the disposable chain and test wallet explicitly:
 ## Isolation and trust boundaries
 
 - The node is forced to -regtest=1; the script independently checks the reported chain before mining.
-- Peer listening, outbound peer connections, DNS seeding, discovery and UPnP are disabled.
+- Peer listening, outbound peer connections, DNS seeding and discovery are disabled. The Docker network is internal and no P2P port is published.
 - The Compose network is marked internal.
 - No RPC or P2P port is published to the host.
 - RPC is used only by bitcoin-cli inside the same container, using Bitcoin Core's local cookie authentication.

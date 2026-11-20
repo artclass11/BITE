@@ -36,13 +36,14 @@ This is a gate-based roadmap, not a promised delivery schedule. A stage is compl
 - [x] Deterministic BTC/USD order validation with bounded integer parsing.
 - [x] Verify Nostr event ID/signature and bind order maker/timestamp (BITE event kind/tags and global replay rules remain pending).
 - [x] Persist local replay keys across restarts with SQLite (cross-device/global replay remains pending).
-- [ ] Local regtest Bitcoin Core integration.
+- [x] Add a local Bitcoin Core regtest sandbox and CI smoke test; the test forces `regtest`, disables peer networking and exposes no RPC/P2P ports.
+- [ ] Integrate the BITE application with Bitcoin Core RPC for read-only transaction/block observation, chain checks and reorg handling.
 - [ ] PSBT construction and strict validation.
 - [ ] Simulated two-party signing with disposable test keys.
 - [ ] Property and fuzz tests.
 - [ ] No mainnet configuration in the default build.
 
-**Exit gate:** tests prove no single application API can fabricate settlement or move user funds.
+**Exit gate:** tests prove no single application API can fabricate settlement or move user funds. The current regtest smoke test only proves isolated node startup and test-block generation; it does not satisfy the RPC/settlement exit gate.
 
 **Stage 2 progress note:** durable local replay is implemented, but Stage 2 is not complete. Bitcoin Core regtest integration, PSBT validation/construction, simulated two-party signing and property/fuzz coverage still block its exit gate.
 

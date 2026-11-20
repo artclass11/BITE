@@ -10,6 +10,9 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt;
 
+mod durable_replay;
+pub use durable_replay::{DurableReplayStore, ReplayStoreError};
+
 pub const MARKET_BTC_USD: &str = "BTC-USD";
 pub const SATOSHIS_PER_BTC: u128 = 100_000_000;
 pub const MAX_BITCOIN_SUPPLY_SATS: u128 = 2_100_000_000_000_000;
@@ -51,6 +54,7 @@ pub enum ProtocolError {
     DuplicateEvent,
     DuplicateOrder,
     ReplayGuardAtCapacity,
+    ReplayTimestampOutOfRange,
 }
 
 impl fmt::Display for ProtocolError {

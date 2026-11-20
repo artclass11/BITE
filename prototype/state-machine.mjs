@@ -19,6 +19,7 @@ export const TradeState = Object.freeze({
   CONFIRMING: "CONFIRMING",
   SETTLED: "SETTLED",
   REORGED: "REORGED",
+  REFUND_BROADCAST: "REFUND_BROADCAST",
   EXPIRED: "EXPIRED",
   CANCELLED: "CANCELLED",
   DISPUTED: "DISPUTED",
@@ -63,16 +64,104 @@ function requirePositiveInteger(value, name) {
   }
 }
 
+function requireNonNegativeInteger(value, name) {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    fail("INVALID_TRADE", name + " must be a non-negative safe integer");
+  }
+}
+
 function requireTrade(trade) {
-  if (!trade || typeof trade !== "object" || typeof trade.id !== "string" ||
+  if (!trade || typeof trade !== "object" || Array.isArray(trade) ||
+      typeof trade.id !== "string" || trade.id.trim().length === 0 ||
       !Object.values(TradeState).includes(trade.state) ||
       !Number.isSafeInteger(trade.requiredConfirmations) || trade.requiredConfirmations < 1) {
     fail("INVALID_TRADE", "trade aggregate is malformed");
   }
+
+  requireNonNegativeInteger(trade.verifiedSignatureCount, "verifiedSignatureCount");
+  requireNonNegativeInteger(trade.confirmations, "confirmations");
+  requireNonNegativeInteger(trade.refundConfirmations, "refundConfirmations");
+
+  for (const [field, value] of Object.entries({
+    termsHash: trade.termsHash,
+    psbtHash: trade.psbtHash,
+    txid: trade.txid,
+    blockHash: trade.blockHash,
+    refundIntentHash: trade.refundIntentHash,
+    refundTxid: trade.refundTxid,
+    refundBlockHash: trade.refundBlockHash
+  })) {
+    if (value !== null) requireHash(value, field);
+  }
+
+  for (const [field, value] of Object.entries({
+    blockHeight: trade.blockHeight,
+    refundBlockHeight: trade.refundBlockHeight
+  })) {
+    if (value !== null) requirePositiveInteger(value, field);
+  }
+
+  for (const [field, value] of Object.entries({
+    counterpartyId: trade.counterpartyId,
+    signaturePolicyId: trade.signaturePolicyId,
+    disputeCode: trade.disputeCode
+  })) {
+    if (value !== null && (typeof value !== "string" || value.trim().length === 0)) {
+      fail("INVALID_TRADE", field + " must be null or a non-empty string");
+    }
+  }
+
+  if ([TradeState.MATCH_PROPOSED, TradeState.AGREED].includes(trade.state) &&
+      (!trade.counterpartyId || !trade.termsHash)) {
+    fail("INVALID_TRADE", "matched trade is missing counterparty or terms hash");
+  }
+  if ([TradeState.PSBT_PREPARED, TradeState.PARTIALLY_SIGNED, TradeState.READY_TO_BROADCAST].includes(trade.state) &&
+      !trade.psbtHash) {
+    fail("INVALID_TRADE", "PSBT state is missing its PSBT hash");
+  }
+  if (trade.state === TradeState.PARTIALLY_SIGNED && trade.verifiedSignatureCount < 1) {
+    fail("INVALID_TRADE", "partially-signed trade must contain a verified signature count");
+  }
+  if (trade.state === TradeState.READY_TO_BROADCAST && !trade.signaturePolicyId) {
+    fail("INVALID_TRADE", "broadcast-ready trade is missing its satisfied signature policy");
+  }
+  if ([TradeState.BROADCAST, TradeState.CONFIRMING, TradeState.SETTLED, TradeState.REORGED].includes(trade.state) &&
+      !trade.txid) {
+    fail("INVALID_TRADE", "broadcast trade is missing its transaction ID");
+  }
+  if ([TradeState.CONFIRMING, TradeState.SETTLED].includes(trade.state) &&
+      (!trade.blockHash || trade.blockHeight === null || trade.confirmations < 1)) {
+    fail("INVALID_TRADE", "confirmed trade is missing block metadata");
+  }
+  if (trade.state === TradeState.SETTLED && trade.confirmations < trade.requiredConfirmations) {
+    fail("INVALID_TRADE", "settled trade has not met its configured confirmation policy");
+  }
+  if ([TradeState.BROADCAST, TradeState.REORGED].includes(trade.state) &&
+      (trade.blockHash !== null || trade.blockHeight !== null || trade.confirmations !== 0)) {
+    fail("INVALID_TRADE", "unconfirmed trade contains stale block metadata");
+  }
+  if (trade.state === TradeState.DISPUTED && !trade.disputeCode) {
+    fail("INVALID_TRADE", "disputed trade is missing a dispute code");
+  }
+  if ([TradeState.REFUND_BROADCAST, TradeState.REFUNDED].includes(trade.state) &&
+      (!trade.refundIntentHash || !trade.refundTxid)) {
+    fail("INVALID_TRADE", "refund state is missing its bound intent or transaction ID");
+  }
+  if (trade.state === TradeState.REFUND_BROADCAST &&
+      (trade.refundBlockHash !== null || trade.refundBlockHeight !== null || trade.refundConfirmations !== 0)) {
+    fail("INVALID_TRADE", "unconfirmed refund contains stale block metadata");
+  }
+  if (trade.state === TradeState.REFUNDED &&
+      (!trade.refundBlockHash || trade.refundBlockHeight === null ||
+       trade.refundConfirmations < trade.requiredConfirmations)) {
+    fail("INVALID_TRADE", "refunded trade has not met its configured confirmation policy");
+  }
 }
 
 function next(trade, changes) {
-  return Object.freeze({ ...trade, ...changes });
+  const updated = Object.freeze({ ...trade, ...changes });
+  requireTrade(updated);
+  return updated;
 }
 
 export function createTrade({ id, requiredConfirmations = 6 } = {}) {
@@ -92,6 +181,7 @@ export function createTrade({ id, requiredConfirmations = 6 } = {}) {
     blockHeight: null,
     confirmations: 0,
     disputeCode: null,
+    refundIntentHash: null,
     refundTxid: null,
     refundBlockHash: null,
     refundBlockHeight: null,
@@ -234,6 +324,9 @@ export function applyTradeEvent(trade, event) {
     case "CHAIN_CONFLICT":
       requireState(trade, [TradeState.BROADCAST, TradeState.CONFIRMING, TradeState.SETTLED, TradeState.REORGED], event.type);
       requireHash(event.conflictingTxid, "conflictingTxid");
+      if (event.conflictingTxid === trade.txid) {
+        fail("CONFLICT_TXID_MATCH", "conflicting transaction cannot equal the trade transaction");
+      }
       requireText(event.disputeCode, "disputeCode");
       return next(trade, { state: TradeState.DISPUTED, disputeCode: event.disputeCode });
 
@@ -252,18 +345,34 @@ export function applyTradeEvent(trade, event) {
       requireState(trade, [TradeState.DRAFT, TradeState.OPEN], event.type);
       return next(trade, { state: TradeState.CANCELLED });
 
-    case "REFUND_CONFIRMED":
+    case "REFUND_BROADCAST":
       requireState(trade, [TradeState.DISPUTED], event.type);
+      requireHash(event.refundIntentHash, "refundIntentHash");
+      requireHash(event.refundTxid, "refundTxid");
+      return next(trade, {
+        state: TradeState.REFUND_BROADCAST,
+        refundIntentHash: event.refundIntentHash,
+        refundTxid: event.refundTxid,
+        refundBlockHash: null,
+        refundBlockHeight: null,
+        refundConfirmations: 0
+      });
+
+    case "REFUND_CONFIRMED":
+      requireState(trade, [TradeState.REFUND_BROADCAST], event.type);
+      requireHash(event.refundIntentHash, "refundIntentHash");
       requireHash(event.refundTxid, "refundTxid");
       requireHash(event.blockHash, "blockHash");
       requirePositiveInteger(event.blockHeight, "blockHeight");
       requirePositiveInteger(event.confirmations, "confirmations");
+      if (event.refundIntentHash !== trade.refundIntentHash || event.refundTxid !== trade.refundTxid) {
+        fail("REFUND_MISMATCH", "confirmed refund does not match the previously bound refund intent and transaction");
+      }
       if (event.confirmations < trade.requiredConfirmations) {
         fail("REFUND_NOT_FINAL", "refund has not met the configured confirmation policy");
       }
       return next(trade, {
         state: TradeState.REFUNDED,
-        refundTxid: event.refundTxid,
         refundBlockHash: event.blockHash,
         refundBlockHeight: event.blockHeight,
         refundConfirmations: event.confirmations
@@ -276,8 +385,7 @@ export function applyTradeEvent(trade, event) {
         fail("BLOCK_MISMATCH", "refund reorg does not match the recorded refund block");
       }
       return next(trade, {
-        state: TradeState.DISPUTED,
-        refundTxid: null,
+        state: TradeState.REFUND_BROADCAST,
         refundBlockHash: null,
         refundBlockHeight: null,
         refundConfirmations: 0

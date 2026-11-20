@@ -43,3 +43,18 @@ jobs:
           node-version: 22
       - name: Run tests
         run: npm test
+
+  bitcoin-regtest-smoke:
+    name: Bitcoin Core regtest smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Start isolated regtest node and mine test blocks
+        run: bash scripts/regtest-smoke.sh
+      - name: Remove disposable regtest container and data
+        if: always()
+        run: docker compose --project-name bite-stage2-regtest --file contrib/regtest/compose.yaml down --volumes

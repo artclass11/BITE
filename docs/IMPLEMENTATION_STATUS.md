@@ -18,7 +18,9 @@
 - BTC/USD order payload v1 prototype contract documenting fields, integer units, exact quote arithmetic, time policy, proposed Nostr envelope requirements and unresolved semantics.
 - BTC/USD order-payload validator with canonical integer strings, market and side restrictions, maker/order identifier format checks, expiry checks and unknown-field rejection.
 - Rust workspace with a strict BTC/USD order type and a Nostr event verifier. It verifies event ID/signature, rejects unknown/duplicate outer and order fields, bounds input sizes, and binds maker key and timestamp to the signed event.
-- Rust unit/integration tests for valid signed orders, tampering, maker mismatch, timestamp mismatch, duplicate/unknown fields, invalid amounts, expiry, oversized input and policy validation.
+- Rust unit/integration tests for valid signed orders, tampering, maker mismatch, timestamp mismatch, duplicate/unknown fields, invalid amounts, expiry, oversized input, replay rejection, maker-scoped order uniqueness, expiry pruning and replay-guard capacity.
+- Bounded in-process replay guard that rejects duplicate event IDs and duplicate `(makerPubkey, orderId)` pairs, prunes expired entries and fails closed when full.
+- Committed `Cargo.lock`; Rust CI runs `cargo test --locked --workspace`.
 - Exact rational quote-notional arithmetic; the prototype performs no floating-point monetary calculations and deliberately does not round settlement amounts.
 - BTC/USD price comparison using integer arithmetic.
 - Trade-state machine prototype with immutable aggregate transitions, state invariants, PSBT-hash binding, signature-policy milestones, confirmation thresholds, chain conflict handling, reorgs, refund-intent/transaction binding, refund finality and refund reorg handling.
@@ -30,7 +32,7 @@
 ## Not implemented
 
 - Production frontend, backend API, accounts, live order book or relay service.
-- Approved BITE-specific Nostr event kind/tag schema, global replay and order-uniqueness protection, cancellation/partial-fill semantics, anti-spam controls, and multi-relay implementation.
+- Approved BITE-specific Nostr event kind/tag schema, durable cross-process replay protection, cancellation/partial-fill semantics, anti-spam controls, and multi-relay implementation.
 - Bitcoin Core integration or independently verified chain observer.
 - PSBT parser, transaction construction, fee policy, wallet integration or hardware-signer flow.
 - USD payment integrations, fiat escrow, arbitration, bank verification or refunds.
@@ -41,11 +43,11 @@
 
 1. **USD rails and jurisdictions:** no ACH, wire, card, cash, payment-app or other USD rail is selected. Countries and customer eligibility require counsel review.
 2. **Settlement model:** direct counterparty settlement, 2-of-2 timeout and 2-of-3 escrow have different recovery and trust assumptions. None is approved.
-3. **Trust-boundary implementation:** the order validator checks payload structure only and does not authenticate a maker. State-machine events are trusted inputs. Neither currently verifies a PSBT, Bitcoin transaction, block, node response or USD payment.
+3. **Trust-boundary implementation:** signed Nostr events are authenticated by the Rust verifier, but BITE-specific event kind/tags and durable replay state are pending. The local replay guard is process-only. State-machine events are trusted inputs. Neither currently verifies a PSBT, Bitcoin transaction, block, node response or USD payment.
 
 ## Next engineering sequence
 
-1. Implement and review the signed BTC/USD Nostr event envelope, including event identity, nonce/replay protection, expiry, cancellation, partial fill and signature test vectors, based on docs/protocol/BTC_USD_ORDER_V1.md.
+1. Finalize the signed BTC/USD Nostr event envelope and persistent replay protocol: event kind/tags, nonce, expiry, cancellation, partial fill and published signature test vectors, based on docs/protocol/BTC_USD_ORDER_V1.md.
 2. Select supported jurisdictions and a USD payment model after qualified legal review.
 3. Compare direct settlement, cooperative Bitcoin contracts and escrow with a written dispute/recovery policy.
 4. Implement multi-relay order discovery with independent relay failure, censorship and spam handling; the current Rust crate only verifies supplied signed events.

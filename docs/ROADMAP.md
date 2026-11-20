@@ -8,8 +8,8 @@ This is a gate-based roadmap, not a promised delivery schedule. A stage is compl
 - [x] Document initial architecture and trust boundaries.
 - [x] Document initial threat model.
 - [x] Add security and contribution policies.
-- [ ] Record product and protocol decisions in ADRs.
-- [ ] Confirm intended market, quote asset, jurisdictions, and user flows.
+- [x] Record the first product decision in an ADR (BTC/USD).
+- [ ] Confirm supported jurisdictions, payment rails, and user flows.
 
 **Exit gate:** product definition and core threat model reviewed.
 

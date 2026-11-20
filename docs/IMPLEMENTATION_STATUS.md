@@ -17,6 +17,8 @@
 - ADR 0001 selecting BTC/USD and documenting off-chain USD settlement limitations.
 - BTC/USD order payload v1 prototype contract documenting fields, integer units, exact quote arithmetic, time policy, proposed Nostr envelope requirements and unresolved semantics.
 - BTC/USD order-payload validator with canonical integer strings, market and side restrictions, maker/order identifier format checks, expiry checks and unknown-field rejection.
+- Rust workspace with a strict BTC/USD order type and a Nostr event verifier. It verifies event ID/signature, rejects unknown/duplicate outer and order fields, bounds input sizes, and binds maker key and timestamp to the signed event.
+- Rust unit/integration tests for valid signed orders, tampering, maker mismatch, timestamp mismatch, duplicate/unknown fields, invalid amounts, expiry, oversized input and policy validation.
 - Exact rational quote-notional arithmetic; the prototype performs no floating-point monetary calculations and deliberately does not round settlement amounts.
 - BTC/USD price comparison using integer arithmetic.
 - Trade-state machine prototype with immutable aggregate transitions, state invariants, PSBT-hash binding, signature-policy milestones, confirmation thresholds, chain conflict handling, reorgs, refund-intent/transaction binding, refund finality and refund reorg handling.
@@ -28,7 +30,7 @@
 ## Not implemented
 
 - Production frontend, backend API, accounts, live order book or relay service.
-- Nostr order-event schema, BIP-340/Schnorr signature verification, event authorization, anti-spam or replay-resistant multi-relay implementation.
+- Approved BITE-specific Nostr event kind/tag schema, global replay and order-uniqueness protection, cancellation/partial-fill semantics, anti-spam controls, and multi-relay implementation.
 - Bitcoin Core integration or independently verified chain observer.
 - PSBT parser, transaction construction, fee policy, wallet integration or hardware-signer flow.
 - USD payment integrations, fiat escrow, arbitration, bank verification or refunds.
@@ -46,7 +48,7 @@
 1. Implement and review the signed BTC/USD Nostr event envelope, including event identity, nonce/replay protection, expiry, cancellation, partial fill and signature test vectors, based on docs/protocol/BTC_USD_ORDER_V1.md.
 2. Select supported jurisdictions and a USD payment model after qualified legal review.
 3. Compare direct settlement, cooperative Bitcoin contracts and escrow with a written dispute/recovery policy.
-4. Implement Nostr event verification and multi-relay order discovery.
+4. Implement multi-relay order discovery with independent relay failure, censorship and spam handling; the current Rust crate only verifies supplied signed events.
 5. Implement an isolated Bitcoin Core observer with reorg and conflict tracking.
 6. Implement PSBT parsing and strict comparison against agreed trade intent, followed by user-controlled wallet signing.
 7. Run regtest adversarial simulations and independent review before any public test deployment.

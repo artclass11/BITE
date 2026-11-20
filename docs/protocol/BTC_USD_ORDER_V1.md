@@ -4,7 +4,7 @@
 
 The JavaScript structural validator is in `prototype/btc-usd-market.mjs`. The Rust verifier is in `crates/bite-protocol`; it parses a strict Nostr event, verifies the event ID and Schnorr signature, parses the order payload, and binds its maker key and creation timestamp to the event.
 
-The Rust core is still a prototype. The BITE-specific event kind, tag layout, cancellation/partial-fill semantics and relay operation are not implemented or approved. A bounded in-process replay guard now rejects duplicate event IDs and duplicate `(makerPubkey, orderId)` pairs until their signed expiry; it is not persistent or shared across devices/processes. The `nostr` dependency is pinned to version `0.45.7`; it has not been independently audited as part of BITE.
+The Rust core is still a prototype. The BITE-specific event kind, tag layout, cancellation/partial-fill semantics and relay operation are not implemented or approved. The crate has both a bounded in-process replay guard and a SQLite-backed durable replay store. The SQLite store survives restarts and coordinates connections/processes that share one database file, but it is not shared across separate devices or independent clients. The `nostr` dependency is pinned to version `0.45.7` and `rusqlite` to `0.43.0`; neither dependency has been independently audited as part of BITE.
 
 ## Market and units
 
@@ -40,9 +40,9 @@ For a price (P) expressed as micro-USD per BTC and a size (S) expressed in satos
 
 The implementation returns the numerator and denominator as decimal strings. It does not round. The amount sent over a USD payment rail, quote rounding, fee allocation, minimum order size, price tick, and partial-fill math must be specified in a later reviewed protocol decision before the market can settle trades.
 
-## Implemented replay-guard prototype
+## Implemented replay protection prototypes
 
-The Rust crate exposes `ReplayGuard` for a single client ingest loop:
+The Rust crate exposes `ReplayGuard` for a single-process ingest loop:
 
 - deduplicates an identical signed Nostr event by event ID;
 - rejects a new event that republishes the same order ID from the same maker key;
@@ -50,22 +50,28 @@ The Rust crate exposes `ReplayGuard` for a single client ingest loop:
 - prunes entries only after their signed order expiry;
 - has a bounded maximum capacity and rejects new orders when full rather than evicting still-live entries.
 
-All relay connections handled by one client must feed the same guard through a serialized ingest path. This in-memory prototype is lost on process restart, is not shared by devices, and does not coordinate separate clients. Production clients need an atomic durable replay store with explicit retention and recovery rules. It does not replace a finalized nonce, cancellation or partial-fill protocol.
+All relay connections handled by one process must feed the same in-memory guard through a serialized ingest path. It is lost on restart.
 
-## Proposed Nostr envelope (not yet implemented)
+For restart persistence, `DurableReplayStore` uses SQLite. It stores event IDs, maker public keys, order IDs and signed expiries, with database uniqueness constraints on event ID and `(makerPubkey, orderId)`. Each admission uses one IMMEDIATE transaction to prune expired rows, check duplicates, enforce capacity and insert. It fails closed on storage errors, unsupported schema versions, changed capacity settings and out-of-range timestamps. `rusqlite` is pinned with bundled SQLite; the database uses WAL mode and FULL synchronous durability.
 
-The next protocol stage is to transport the order payload in a Nostr event and verify it using a maintained, audited secp256k1/Schnorr implementation. The following requirements are mandatory before orders can be called signed or authenticated:
+A durable store coordinates connections/processes only when they share the same local database file. It does not synchronize separate devices, different clients or independent database files. Restoring an old database backup can roll replay history backward; production recovery and cross-client order identity still need a reviewed protocol. Neither replay store defines nonce, cancellation or partial-fill semantics.
+
+## Nostr event verification boundary (partially implemented)
+
+The Rust verifier accepts a supplied Nostr event and verifies its event ID and Schnorr signature using the pinned `nostr` library. It strictly parses the outer event and the signed order content, and binds the payload maker and timestamp to the event author and timestamp. The integration tests currently construct valid events using a generic text-note kind only as a cryptographic fixture; this does **not** define the BITE event kind or tag format.
+
+The following requirements are mandatory before this can be treated as a production BITE order protocol:
 
 1. The Nostr event author's public key must equal the payload's `makerPubkey`.
 2. Event ID and Schnorr signature must be verified locally by every client; a relay or indexer response is not proof of authorship.
-3. The BITE event kind and tag layout remain unassigned pending an ADR and review.
+3. The BITE event kind and tag layout remain unassigned pending a separate protocol ADR and independent review.
 4. Event timestamp must be checked against `createdAt`; expiry and replay rules must be enforced by every client.
 5. Duplicate JSON keys, oversized payloads, invalid UTF-8, non-canonical numeric values, unknown schema versions, and unsupported fields must fail closed.
 6. Order IDs must be unique per maker within the defined retention window. Replays and duplicate fills must be idempotently rejected.
 7. Clients must work with more than one independent relay and must treat relay content as untrusted input.
 8. The exact serialized event content is signature-bound; clients must never parse an event, silently normalize it, and then verify a different serialization.
 
-The event kind, cancellation event, partial-fill semantics, nonce design, public/private metadata and retention policy are open protocol decisions. The Rust implementation verifies the Nostr event ID/signature and checks that the payload maker key and creation time match the event. It does not yet enforce global replay/unique-order rules, maker authorization beyond control of the Nostr signing key, or the BITE-specific event kind and tags. It does not prove that the maker owns or can spend the Bitcoin offered.
+The event kind, tags, cancellation event, partial-fill semantics, nonce design, public/private metadata and retention policy are open protocol decisions. The Rust implementation verifies the Nostr event ID/signature, checks the maker key and creation time, and supports local durable duplicate suppression. It does not enforce global or cross-device order uniqueness, relay-wide cancellation, maker authorization beyond control of the Nostr signing key, or the BITE-specific event kind and tags. It does not prove that the maker owns or can spend the Bitcoin offered.
 
 ## Prototype time policy
 
@@ -82,4 +88,4 @@ The current validator defaults to a seven-day maximum order lifetime and allows 
 
 ## Acceptance gate
 
-Do not use this payload as a production exchange protocol until the Nostr envelope, canonical/raw parsing, cryptographic verification, replay/cancellation/partial-fill rules, test vectors, privacy review, and independent protocol review have been completed.
+Do not use this payload as a production exchange protocol until the BITE event kind/tags, canonical/raw parsing, cryptographic verification, cross-client replay/cancellation/partial-fill rules, test vectors, privacy review, recovery behavior and independent protocol review have been completed.

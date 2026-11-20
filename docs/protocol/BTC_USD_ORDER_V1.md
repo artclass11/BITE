@@ -1,0 +1,71 @@
+# BITE BTC/USD Order Payload v1 (Prototype Contract)
+
+**Status:** prototype payload contract only. It is not yet a signed Nostr protocol, a matching engine, or a settlement specification.
+
+The current structural validator is in `prototype/btc-usd-market.mjs`. This document describes exactly what that validator expects and which security properties still need to be implemented.
+
+## Market and units
+
+- Market identifier: `BTC-USD`.
+- BTC is the only supported crypto asset.
+- USD is the quote/reference unit; no USD payment method is implied.
+- BTC size is an integer count of satoshis.
+- Limit price is an integer count of micro-USD per BTC. One USD equals 1,000,000 micro-USD.
+- Monetary values are canonical unsigned base-10 strings, not JSON numbers. They contain no sign, exponent, decimal point, whitespace, or leading zero (except the string `"0"`, which is rejected for positive values).
+- All quote calculations use integer/rational arithmetic.
+
+## Version 1 fields
+
+| Field | Type | Rule |
+|---|---|---|
+| `version` | integer | Exactly `1` |
+| `market` | string | Exactly `BTC-USD` |
+| `orderId` | string | 32-byte lowercase hexadecimal client order identifier |
+| `makerPubkey` | string | 32-byte lowercase hexadecimal maker public key |
+| `side` | string | `BUY` or `SELL` |
+| `priceUsdMicrosPerBtc` | string | Positive canonical integer micro-USD per BTC |
+| `sizeSats` | string | Positive canonical integer satoshis; not greater than total Bitcoin supply in satoshis |
+| `createdAt` | integer | Unix timestamp in seconds |
+| `expiresAt` | integer | Unix timestamp in seconds, later than `createdAt` |
+
+Unknown fields are rejected by the v1 validator. Payment instructions, personal details, bank identifiers, card data, account numbers, e-mail addresses, and private contact data must not be placed in public order payloads.
+
+## Exact quote arithmetic
+
+For a price (P) expressed as micro-USD per BTC and a size (S) expressed in satoshis:
+
+`quote micro-USD = (P × S) / 100,000,000`
+
+The implementation returns the numerator and denominator as decimal strings. It does not round. The amount sent over a USD payment rail, quote rounding, fee allocation, minimum order size, price tick, and partial-fill math must be specified in a later reviewed protocol decision before the market can settle trades.
+
+## Proposed Nostr envelope (not yet implemented)
+
+The next protocol stage is to transport the order payload in a Nostr event and verify it using a maintained, audited secp256k1/Schnorr implementation. The following requirements are mandatory before orders can be called signed or authenticated:
+
+1. The Nostr event author's public key must equal the payload's `makerPubkey`.
+2. Event ID and Schnorr signature must be verified locally by every client; a relay or indexer response is not proof of authorship.
+3. The BITE event kind and tag layout remain unassigned pending an ADR and review.
+4. Event timestamp must be checked against `createdAt`; expiry and replay rules must be enforced by every client.
+5. Duplicate JSON keys, oversized payloads, invalid UTF-8, non-canonical numeric values, unknown schema versions, and unsupported fields must fail closed.
+6. Order IDs must be unique per maker within the defined retention window. Replays and duplicate fills must be idempotently rejected.
+7. Clients must work with more than one independent relay and must treat relay content as untrusted input.
+8. The exact serialized event content is signature-bound; clients must never parse an event, silently normalize it, and then verify a different serialization.
+
+The event kind, cancellation event, partial-fill semantics, nonce design, public/private metadata and retention policy are open protocol decisions. The current code validates a JavaScript object only; it does not parse raw JSON safely, verify event IDs, verify Schnorr signatures, or authorize a maker.
+
+## Prototype time policy
+
+The current validator defaults to a seven-day maximum order lifetime and allows thirty seconds of future clock skew. Those are prototype defaults, not yet approved market rules. Production policy must be explicit, bounded, tested across clock drift, and reviewed for relay retention and user cancellation.
+
+## Security boundaries and non-goals
+
+- The order validator is not a signature verifier.
+- `makerPubkey` is not authenticated by the validator alone.
+- A valid order is not proof that the maker owns or can spend the offered bitcoin.
+- An order is not a signed transaction, a completed trade, or proof of USD payment.
+- The order payload does not create escrow, custody, or a customer balance.
+- USD settlement remains external to Bitcoin consensus.
+
+## Acceptance gate
+
+Do not use this payload as a production exchange protocol until the Nostr envelope, canonical/raw parsing, cryptographic verification, replay/cancellation/partial-fill rules, test vectors, privacy review, and independent protocol review have been completed.

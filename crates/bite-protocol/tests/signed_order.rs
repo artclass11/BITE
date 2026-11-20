@@ -58,7 +58,7 @@ fn valid_signed_order_verifies_event_and_binds_author_and_timestamp() {
     assert_eq!(verified.order().side, bite_protocol::OrderSide::Buy);
     assert_eq!(verified.order().size_sats, "1000");
     assert_eq!(verified.order().created_at, NOW);
-    assert_eq!(verified.maker_pubkey, verified.order.maker_pubkey);
+    assert_eq!(verified.maker_pubkey(), verified.order().maker_pubkey);
     assert_eq!(verified.event_id().len(), 64);
 }
 

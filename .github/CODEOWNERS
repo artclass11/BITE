@@ -1,0 +1,5 @@
+# Security-sensitive paths require maintainer review once branch protection is enabled.
+* @artclass11
+/.github/workflows/ @artclass11
+/docs/ @artclass11
+/prototype/ @artclass11

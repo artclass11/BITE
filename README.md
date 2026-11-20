@@ -1,0 +1,66 @@
+# BITE
+
+**BITE is a Bitcoin-only, peer-to-peer exchange project.**
+
+The goal is to build a security-first exchange where Bitcoin is the only supported crypto asset, users retain control of their signing keys, and trade discovery does not depend on one central order-book operator.
+
+> **Status: Research / prototype foundation. Not production-ready.**
+>
+> This repository does not currently implement a live exchange, custody, deposits, withdrawals, escrow, or real-money trading. Do not send bitcoin to an address or service claiming to be BITE.
+
+## Product boundary
+
+BITE is intended to support Bitcoin-denominated markets. If a future market quotes BTC against fiat, the fiat payment is an external settlement leg: Bitcoin Script cannot independently verify that a bank transfer, cash payment, or other off-chain event occurred. The UI and protocol must disclose this limitation. BITE must never describe such a trade as fully trustless.
+
+The exact first market, payment rails, escrow model, jurisdiction, and operating model remain product decisions. Until those are reviewed, the prototype must not move real funds.
+
+## Non-negotiable security principles
+
+1. **No platform custody by default.** The application server must not hold user seed phrases, private keys, or pooled customer bitcoin.
+2. **User-controlled signing.** Transactions are constructed as PSBTs and signed in the user's wallet or hardware signer. The server never asks for a seed phrase.
+3. **No hot-wallet exchange balance.** There is no internal customer balance ledger that purports to represent redeemable bitcoin.
+4. **Bitcoin consensus is authoritative.** A trade is not settled because an API, relay, webhook, or browser says so. Settlement requires independent chain verification and a clearly defined confirmation policy.
+5. **Decentralized discovery, verifiable messages.** Order messages are signed by their authors and may be distributed through multiple independent relays. Relays are transport, not sources of truth.
+6. **Fail closed.** Stale chain data, conflicting transactions, reorgs, unavailable signers, invalid signatures, and uncertain trade states must stop progression rather than guess.
+7. **No mainnet experimentation.** Development and CI use regtest/test fixtures. Mainnet support is a separate release gate.
+8. **Security review before value.** No production release before independent protocol review, threat-model review, adversarial testing, and a documented incident-response plan.
+
+## Proposed architecture (subject to ADRs)
+
+- **Client:** user-controlled wallet integration; local transaction review and signing; no seed/private-key collection.
+- **Order discovery:** signed, schema-versioned events distributed across multiple Nostr-compatible relays. Clients verify event signatures and expiry locally.
+- **Bitcoin integration:** isolated Bitcoin Core node(s), read-only public-chain observation for the application, explicit confirmation/reorg tracking, and PSBT-based transaction coordination.
+- **Backend:** replaceable discovery/indexing services. Backend state is a cache; it is never the authority for ownership or settlement.
+- **Settlement:** a separately reviewed Bitcoin-native mechanism. No escrow contract is assumed safe merely because it uses multisig or Taproot.
+- **Operations:** reproducible builds, dependency pinning, signed releases, least-privilege infrastructure, monitoring, backups, and a tested recovery process.
+
+## Development stages
+
+1. **Specification:** define market semantics, threat model, trade state machine, key ownership, and settlement assumptions.
+2. **Offline prototype:** signed order messages, schema validation, deterministic state machine, and regtest-only transaction simulations.
+3. **Wallet integration:** PSBT creation/review/signing with no server-side private keys.
+4. **Adversarial testing:** fuzzing, property tests, relay spam/replay tests, reorg tests, transaction replacement tests, and independent code review.
+5. **Limited public test:** testnet/regtest only, public bug bounty or coordinated disclosure process, and no real funds.
+6. **Mainnet decision:** only after legal, security, operational, and independent audit gates are passed.
+
+## Security status
+
+See [SECURITY.md](SECURITY.md), [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [docs/ROADMAP.md](docs/ROADMAP.md).
+
+## Technical references
+
+- [Bitcoin Improvement Proposals](https://github.com/bitcoin/bips)
+- [BIP 340 — Schnorr signatures](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki)
+- [BIP 341 — Taproot](https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki)
+- [BIP 174 — PSBT](https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki)
+- [Bitcoin Core RPC security guidance](https://github.com/bitcoin/bitcoin/blob/master/doc/JSON-RPC-interface.md)
+- [Nostr NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md)
+- [Rust Bitcoin library](https://docs.rs/bitcoin/latest/bitcoin/)
+
+## Contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md). Security-sensitive changes must include tests, threat-model updates, and a review note. Do not submit secrets, seed phrases, private keys, wallet files, or real customer data.
+
+---
+
+BITE is an engineering project, not investment advice, a bank, a broker, or a promise of returns.

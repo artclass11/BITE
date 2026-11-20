@@ -25,7 +25,7 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Run protocol tests
-        run: cargo test --workspace
+        run: cargo test --locked --workspace
   state-machine-tests:
     name: State-machine tests
     runs-on: ubuntu-latest

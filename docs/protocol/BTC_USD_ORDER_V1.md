@@ -2,7 +2,9 @@
 
 **Status:** prototype payload contract only. It is not yet a signed Nostr protocol, a matching engine, or a settlement specification.
 
-The current structural validator is in `prototype/btc-usd-market.mjs`. This document describes exactly what that validator expects and which security properties still need to be implemented.
+The JavaScript structural validator is in `prototype/btc-usd-market.mjs`. The Rust verifier is in `crates/bite-protocol`; it parses a strict Nostr event, verifies the event ID and Schnorr signature, parses the order payload, and binds its maker key and creation timestamp to the event.
+
+The Rust core is still a prototype. The BITE-specific event kind, tag layout, replay/cancellation/partial-fill semantics and relay operation are not implemented or approved. The `nostr` dependency is pinned to version `0.45.7`; it has not been independently audited as part of BITE.
 
 ## Market and units
 
@@ -51,7 +53,7 @@ The next protocol stage is to transport the order payload in a Nostr event and v
 7. Clients must work with more than one independent relay and must treat relay content as untrusted input.
 8. The exact serialized event content is signature-bound; clients must never parse an event, silently normalize it, and then verify a different serialization.
 
-The event kind, cancellation event, partial-fill semantics, nonce design, public/private metadata and retention policy are open protocol decisions. The current code validates a JavaScript object only; it does not parse raw JSON safely, verify event IDs, verify Schnorr signatures, or authorize a maker.
+The event kind, cancellation event, partial-fill semantics, nonce design, public/private metadata and retention policy are open protocol decisions. The Rust implementation verifies the Nostr event ID/signature and checks that the payload maker key and creation time match the event. It does not yet enforce global replay/unique-order rules, maker authorization beyond control of the Nostr signing key, or the BITE-specific event kind and tags. It does not prove that the maker owns or can spend the Bitcoin offered.
 
 ## Prototype time policy
 

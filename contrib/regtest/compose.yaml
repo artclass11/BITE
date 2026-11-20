@@ -16,12 +16,6 @@ services:
       - regtest-data:/home/bitcoin/.bitcoin
     networks:
       - regtest-isolated
-    healthcheck:
-      test: ["CMD", "bitcoin-cli", "-regtest", "getblockchaininfo"]
-      interval: 2s
-      timeout: 5s
-      retries: 45
-      start_period: 5s
     stop_grace_period: 30s
     logging:
       driver: json-file

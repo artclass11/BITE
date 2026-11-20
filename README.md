@@ -34,6 +34,18 @@ The exact first market, payment rails, escrow model, jurisdiction, and operating
 - **Settlement:** a separately reviewed Bitcoin-native mechanism. No escrow contract is assumed safe merely because it uses multisig or Taproot.
 - **Operations:** reproducible builds, dependency pinning, signed releases, least-privilege infrastructure, monitoring, backups, and a tested recovery process.
 
+## Executable prototype
+
+A dependency-free offline trade-state model is in [prototype/](prototype/). It covers lifecycle transitions, PSBT-hash binding, signature-policy milestones, confirmation thresholds, reorgs, conflicting spends, disputes, expiry, cancellation, and refund reorgs.
+
+Run the tests with Node.js 22 or later:
+
+```sh
+npm test
+```
+
+The prototype does **not** verify cryptographic signatures, parse PSBTs, connect to Nostr relays or Bitcoin Core, manage keys, or broadcast transactions. Those integrations must be built and reviewed separately. GitHub Actions runs the same state-machine test suite on pushes and pull requests.
+
 ## Development stages
 
 1. **Specification:** define market semantics, threat model, trade state machine, key ownership, and settlement assumptions.
@@ -45,7 +57,7 @@ The exact first market, payment rails, escrow model, jurisdiction, and operating
 
 ## Security status
 
-See [SECURITY.md](SECURITY.md), [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), and [docs/ROADMAP.md](docs/ROADMAP.md).
+See [SECURITY.md](SECURITY.md), [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/ROADMAP.md](docs/ROADMAP.md), and [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).
 
 ## Technical references
 

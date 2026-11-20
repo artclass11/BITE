@@ -21,6 +21,7 @@
 - Rust unit/integration tests for valid signed orders, tampering, maker mismatch, timestamp mismatch, duplicate/unknown fields, invalid amounts, expiry, oversized input, replay rejection, maker-scoped order uniqueness, expiry pruning and replay-guard capacity.
 - Bounded in-process replay guard plus a SQLite-backed durable replay store. The durable store persists event IDs and maker-scoped order IDs across restarts, uses unique database constraints and atomic IMMEDIATE transactions, prunes only expired entries, fixes capacity in versioned metadata, and fails closed on duplicates, capacity and storage errors.
 - Committed `Cargo.lock`; Rust CI runs `cargo test --locked --workspace`.
+- Isolated Bitcoin Core 32.1 regtest Compose sandbox and CI smoke test. It verifies the chain is `regtest`, uses a local disposable wallet and mines at least 101 blocks; it exposes no RPC/P2P ports and does not yet connect the BITE Rust application to Bitcoin Core.
 - Exact rational quote-notional arithmetic; the prototype performs no floating-point monetary calculations and deliberately does not round settlement amounts.
 - BTC/USD price comparison using integer arithmetic.
 - Trade-state machine prototype with immutable aggregate transitions, state invariants, PSBT-hash binding, signature-policy milestones, confirmation thresholds, chain conflict handling, reorgs, refund-intent/transaction binding, refund finality and refund reorg handling.
@@ -33,7 +34,7 @@
 
 - Production frontend, backend API, accounts, live order book or relay service.
 - Approved BITE-specific Nostr event kind/tag schema, cross-device/global replay protection, cancellation/partial-fill semantics, anti-spam controls, and multi-relay implementation. SQLite replay protection is local to one shared database file and is not network-wide.
-- Bitcoin Core integration or independently verified chain observer.
+- BITE application RPC integration with Bitcoin Core or an independently verified chain observer. The regtest container smoke test is environment-only.
 - PSBT parser, transaction construction, fee policy, wallet integration or hardware-signer flow.
 - USD payment integrations, fiat escrow, arbitration, bank verification or refunds.
 - Mainnet/testnet deployment, monitoring, backups, incident-response drills or independent security audits.
@@ -51,7 +52,7 @@
 2. Select supported jurisdictions and a USD payment model after qualified legal review.
 3. Compare direct settlement, cooperative Bitcoin contracts and escrow with a written dispute/recovery policy.
 4. Implement multi-relay order discovery with independent relay failure, censorship and spam handling; the current Rust crate only verifies supplied signed events.
-5. Implement an isolated Bitcoin Core observer with reorg and conflict tracking.
+5. Implement a read-only Bitcoin Core RPC adapter for the regtest node, with explicit chain identity checks, transaction/block observation, confirmation tracking, and reorg/conflict handling.
 6. Implement PSBT parsing and strict comparison against agreed trade intent, followed by user-controlled wallet signing.
 7. Run regtest adversarial simulations and independent review before any public test deployment.
 

@@ -4,7 +4,7 @@
 
 The JavaScript structural validator is in `prototype/btc-usd-market.mjs`. The Rust verifier is in `crates/bite-protocol`; it parses a strict Nostr event, verifies the event ID and Schnorr signature, parses the order payload, and binds its maker key and creation timestamp to the event.
 
-The Rust core is still a prototype. The BITE-specific event kind, tag layout, replay/cancellation/partial-fill semantics and relay operation are not implemented or approved. The `nostr` dependency is pinned to version `0.45.7`; it has not been independently audited as part of BITE.
+The Rust core is still a prototype. The BITE-specific event kind, tag layout, cancellation/partial-fill semantics and relay operation are not implemented or approved. A bounded in-process replay guard now rejects duplicate event IDs and duplicate `(makerPubkey, orderId)` pairs until their signed expiry; it is not persistent or shared across devices/processes. The `nostr` dependency is pinned to version `0.45.7`; it has not been independently audited as part of BITE.
 
 ## Market and units
 
@@ -39,6 +39,18 @@ For a price (P) expressed as micro-USD per BTC and a size (S) expressed in satos
 `quote micro-USD = (P × S) / 100,000,000`
 
 The implementation returns the numerator and denominator as decimal strings. It does not round. The amount sent over a USD payment rail, quote rounding, fee allocation, minimum order size, price tick, and partial-fill math must be specified in a later reviewed protocol decision before the market can settle trades.
+
+## Implemented replay-guard prototype
+
+The Rust crate exposes `ReplayGuard` for a single client ingest loop:
+
+- deduplicates an identical signed Nostr event by event ID;
+- rejects a new event that republishes the same order ID from the same maker key;
+- permits the same order ID under a different maker key (the namespace is maker + order ID);
+- prunes entries only after their signed order expiry;
+- has a bounded maximum capacity and rejects new orders when full rather than evicting still-live entries.
+
+All relay connections handled by one client must feed the same guard through a serialized ingest path. This in-memory prototype is lost on process restart, is not shared by devices, and does not coordinate separate clients. Production clients need an atomic durable replay store with explicit retention and recovery rules. It does not replace a finalized nonce, cancellation or partial-fill protocol.
 
 ## Proposed Nostr envelope (not yet implemented)
 

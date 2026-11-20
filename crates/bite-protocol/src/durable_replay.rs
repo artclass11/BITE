@@ -308,6 +308,7 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::{Arc, Barrier};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     static NEXT_DATABASE_ID: AtomicU64 = AtomicU64::new(0);
@@ -413,6 +414,41 @@ mod tests {
 
         drop(first);
         drop(second);
+        cleanup_database(&path);
+    }
+
+    #[test]
+    fn concurrent_admissions_for_the_same_order_have_exactly_one_winner() {
+        let path = temporary_database_path();
+        let first_store = DurableReplayStore::open(&path, 8).unwrap();
+        let second_store = DurableReplayStore::open(&path, 8).unwrap();
+        let first_order = verified('1', 'a', 'b', 300);
+        let second_order = first_order.clone();
+        let barrier = Arc::new(Barrier::new(2));
+
+        let first_barrier = Arc::clone(&barrier);
+        let first_thread = std::thread::spawn(move || {
+            let mut store = first_store;
+            first_barrier.wait();
+            store.accept(&first_order, 150)
+        });
+
+        let second_thread = std::thread::spawn(move || {
+            let mut store = second_store;
+            barrier.wait();
+            store.accept(&second_order, 150)
+        });
+
+        let first_result = first_thread.join().expect("first thread");
+        let second_result = second_thread.join().expect("second thread");
+        assert_ne!(first_result.is_ok(), second_result.is_ok());
+
+        let losing_result = if first_result.is_err() {
+            first_result
+        } else {
+            second_result
+        };
+        expect_protocol_error(losing_result, ProtocolError::DuplicateEvent);
         cleanup_database(&path);
     }
 

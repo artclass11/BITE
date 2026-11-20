@@ -375,8 +375,8 @@ mod tests {
 
         {
             let mut store = DurableReplayStore::open(&path, 8).unwrap();
-            assert_eq!(store.accept(&first_order, 150), Ok(()));
-            assert_eq!(store.len(), Ok(1));
+            assert!(store.accept(&first_order, 150).is_ok());
+            assert_eq!(store.len().unwrap(), 1);
         }
 
         {
@@ -391,7 +391,7 @@ mod tests {
                 reopened.accept(&same_order_new_event, 151),
                 ProtocolError::DuplicateOrder,
             );
-            assert_eq!(reopened.len(), Ok(1));
+            assert_eq!(reopened.len().unwrap(), 1);
         }
 
         cleanup_database(&path);
@@ -404,12 +404,12 @@ mod tests {
         let mut second = DurableReplayStore::open(&path, 8).unwrap();
         let order = verified('1', 'a', 'b', 300);
 
-        assert_eq!(first.accept(&order, 150), Ok(()));
+        assert!(first.accept(&order, 150).is_ok());
         expect_protocol_error(
             second.accept(&order, 150),
             ProtocolError::DuplicateEvent,
         );
-        assert_eq!(second.len(), Ok(1));
+        assert_eq!(second.len().unwrap(), 1);
 
         drop(first);
         drop(second);
@@ -422,11 +422,11 @@ mod tests {
         let first = verified('1', 'a', 'b', 110);
         let second = verified('2', 'a', 'c', 200);
 
-        assert_eq!(store.accept(&first, 100), Ok(()));
-        assert_eq!(store.accept(&second, 110), Ok(()));
-        assert_eq!(store.len(), Ok(1));
-        assert_eq!(store.prune_expired(199), Ok(0));
-        assert_eq!(store.prune_expired(200), Ok(1));
+        assert!(store.accept(&first, 100).is_ok());
+        assert!(store.accept(&second, 110).is_ok());
+        assert_eq!(store.len().unwrap(), 1);
+        assert_eq!(store.prune_expired(199).unwrap(), 0);
+        assert_eq!(store.prune_expired(200).unwrap(), 1);
         assert!(store.is_empty().unwrap());
     }
 
@@ -436,12 +436,12 @@ mod tests {
         let first = verified('1', 'a', 'b', 300);
         let second = verified('2', 'a', 'c', 301);
 
-        assert_eq!(store.accept(&first, 150), Ok(()));
+        assert!(store.accept(&first, 150).is_ok());
         expect_protocol_error(
             store.accept(&second, 151),
             ProtocolError::ReplayGuardAtCapacity,
         );
-        assert_eq!(store.len(), Ok(1));
+        assert_eq!(store.len().unwrap(), 1);
         expect_protocol_error(
             store.accept(&first, 151),
             ProtocolError::DuplicateEvent,

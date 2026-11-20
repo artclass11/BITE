@@ -272,9 +272,13 @@ fn replay_guard_never_evicts_live_entries_when_full() {
 }
 
 #[test]
-fn replay_guard_prunes_expired_entries_and_rejects_zero_capacity() {
+fn replay_guard_prunes_expired_entries_and_rejects_invalid_capacity() {
     assert!(matches!(
         ReplayGuard::new(0),
+        Err(ProtocolError::InvalidReplayGuardCapacity)
+    ));
+    assert!(matches!(
+        ReplayGuard::new(usize::MAX),
         Err(ProtocolError::InvalidReplayGuardCapacity)
     ));
 

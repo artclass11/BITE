@@ -30,9 +30,9 @@ This is a gate-based roadmap, not a promised delivery schedule. A stage is compl
 
 ## Stage 2 — Offline / regtest prototype
 
-- [ ] Rust workspace for domain and protocol types.
-- [ ] Deterministic order validation and state machine.
-- [ ] Signed order message verification.
+- [x] Rust workspace for BTC/USD domain and protocol types.
+- [x] Deterministic BTC/USD order validation with bounded integer parsing.
+- [x] Verify Nostr event ID/signature and bind order maker/timestamp (BITE event kind/tags and global replay rules remain pending).
 - [ ] Local regtest Bitcoin Core integration.
 - [ ] PSBT construction and strict validation.
 - [ ] Simulated two-party signing with disposable test keys.

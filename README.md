@@ -2,17 +2,20 @@
 
 **BITE is a Bitcoin-only, peer-to-peer exchange project.**
 
-The goal is to build a security-first exchange where Bitcoin is the only supported crypto asset, users retain control of their signing keys, and trade discovery does not depend on one central order-book operator.
+The first selected market is **BTC/USD**: Bitcoin is the only supported crypto asset; USD is the quote/reference currency. BITE is designed around user-controlled signing and decentralized order discovery.
 
 > **Status: Research / prototype foundation. Not production-ready.**
 >
-> This repository does not currently implement a live exchange, custody, deposits, withdrawals, escrow, or real-money trading. Do not send bitcoin to an address or service claiming to be BITE.
+> This repository does not currently implement a live exchange, custody, deposits, withdrawals, escrow, USD payment processing, or real-money trading. Do not send bitcoin to an address or service claiming to be BITE.
 
-## Product boundary
+## BTC/USD product boundary
 
-BITE is intended to support Bitcoin-denominated markets. If a future market quotes BTC against fiat, the fiat payment is an external settlement leg: Bitcoin Script cannot independently verify that a bank transfer, cash payment, or other off-chain event occurred. The UI and protocol must disclose this limitation. BITE must never describe such a trade as fully trustless.
-
-The exact first market, payment rails, escrow model, jurisdiction, and operating model remain product decisions. Until those are reviewed, the prototype must not move real funds.
+- BTC is the only supported crypto asset. No altcoins, wrapped tokens or synthetic BTC.
+- USD is the quote/reference unit. BUY and SELL order concepts are in scope.
+- BTC amounts use integer satoshis. Limit prices use integer micro-USD per BTC; monetary fields must never use floating-point values.
+- Selecting BTC/USD does not select ACH, wire, card, cash, payment apps, escrow, countries or customer eligibility.
+- USD transfers occur outside Bitcoin consensus. Bitcoin Script cannot prove that an off-chain USD payment occurred. BITE must not describe BTC/USD fiat settlement as fully trustless.
+- The prototype must not custody customer USD or BTC.
 
 ## Non-negotiable security principles
 
@@ -36,7 +39,11 @@ The exact first market, payment rails, escrow model, jurisdiction, and operating
 
 ## Executable prototype
 
-A dependency-free offline trade-state model is in [prototype/](prototype/). It covers lifecycle transitions, PSBT-hash binding, signature-policy milestones, confirmation thresholds, reorgs, conflicting spends, disputes, expiry, cancellation, and refund reorgs.
+Dependency-free offline prototypes are in [prototype/](prototype/):
+- trade lifecycle transitions, PSBT-hash binding, confirmation thresholds, reorgs, conflicting spends, disputes, expiry, cancellation and refund reorgs;
+- BTC/USD order payload validation, integer monetary units, exact rational quote arithmetic and BTC/USD price comparison.
+
+The order validator checks payload shape only; it does not verify the maker's cryptographic signature.
 
 Run the tests with Node.js 22 or later:
 
@@ -44,7 +51,7 @@ Run the tests with Node.js 22 or later:
 npm test
 ```
 
-The prototype does **not** verify cryptographic signatures, parse PSBTs, connect to Nostr relays or Bitcoin Core, manage keys, or broadcast transactions. Those integrations must be built and reviewed separately. GitHub Actions runs the same state-machine test suite on pushes and pull requests.
+The prototypes do **not** verify Nostr signatures, parse PSBTs, connect to relays or Bitcoin Core, determine USD payment status, manage keys, or broadcast transactions. Those integrations must be built and reviewed separately. GitHub Actions runs the same state-machine test suite on pushes and pull requests.
 
 ## Development stages
 
@@ -57,7 +64,7 @@ The prototype does **not** verify cryptographic signatures, parse PSBTs, connect
 
 ## Security status
 
-See [SECURITY.md](SECURITY.md), [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DECISIONS.md](docs/DECISIONS.md), [docs/COMPLIANCE.md](docs/COMPLIANCE.md), [docs/ROADMAP.md](docs/ROADMAP.md), and [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).
+See [SECURITY.md](SECURITY.md), [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DECISIONS.md](docs/DECISIONS.md), [docs/adr/0001-btc-usd-market.md](docs/adr/0001-btc-usd-market.md), [docs/COMPLIANCE.md](docs/COMPLIANCE.md), [docs/ROADMAP.md](docs/ROADMAP.md), and [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).
 
 ## Technical references
 

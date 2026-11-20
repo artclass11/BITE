@@ -62,6 +62,8 @@ The prototypes do **not** verify Nostr signatures, parse PSBTs, connect to relay
 5. **Limited public test:** testnet/regtest only, public bug bounty or coordinated disclosure process, and no real funds.
 6. **Mainnet decision:** only after legal, security, operational, and independent audit gates are passed.
 
+The BTC/USD order payload contract is documented in [docs/protocol/BTC_USD_ORDER_V1.md](docs/protocol/BTC_USD_ORDER_V1.md). It is a prototype payload contract only; the signed Nostr envelope and cryptographic verification remain pending.
+
 ## Security status
 
 See [SECURITY.md](SECURITY.md), [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/DECISIONS.md](docs/DECISIONS.md), [docs/adr/0001-btc-usd-market.md](docs/adr/0001-btc-usd-market.md), [docs/COMPLIANCE.md](docs/COMPLIANCE.md), [docs/ROADMAP.md](docs/ROADMAP.md), and [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).

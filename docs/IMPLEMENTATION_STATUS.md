@@ -3,45 +3,52 @@
 **Snapshot date:** 2026-11-20  
 **Readiness:** early prototype only; not suitable for mainnet or customer funds.
 
+## Accepted product decision
+
+- First market: BTC/USD.
+- Bitcoin is the only supported crypto asset.
+- USD is the quote/reference unit.
+- BTC quantities are integer satoshis; prices are integer micro-USD per BTC.
+- USD payment rails, supported jurisdictions, escrow and the settlement model remain unselected.
+
 ## Implemented in the repository
 
-- Bitcoin-only product boundary: BTC is the only supported crypto asset.
-- Accepted first-market decision: BTC/USD, with integer satoshi size and integer micro-USD/BTC price representation. USD payment rails and supported jurisdictions remain undecided.
-- Initial architecture and trust-boundary document.
-- Threat model covering key theft, PSBT substitution, replay, false settlement, reorgs, RPC compromise, fiat fraud, relay abuse, supply-chain compromise, and privacy leakage.
-- Security reporting policy, contribution rules, and compliance/mainnet release checklist.
-- Decision log and ADR for BTC/USD.
-- Dependency-free offline JavaScript trade state machine with immutable transitions, confirmation/reorg handling, aggregate consistency checks, and refund intent/transaction binding.
-- BTC/USD order-domain primitives using canonical integer strings and exact rational quote arithmetic.
-- GitHub Actions CI for Node.js 22. The latest completed code-test run executed **26 tests: 26 passed, 0 failed**.
+- Security-first README and explicit non-custodial design principles.
+- ADR 0001 selecting BTC/USD and documenting off-chain USD settlement limitations.
+- BTC/USD order-payload validator with canonical integer strings, market and side restrictions, maker/order identifier format checks, expiry checks and unknown-field rejection.
+- Exact rational quote-notional arithmetic; the prototype performs no floating-point monetary calculations and deliberately does not round settlement amounts.
+- BTC/USD price comparison using integer arithmetic.
+- Trade-state machine prototype with immutable aggregate transitions, state invariants, PSBT-hash binding, signature-policy milestones, confirmation thresholds, chain conflict handling, reorgs, refund-intent/transaction binding, refund finality and refund reorg handling.
+- Automated tests for BTC/USD order validation and trade-state transitions.
+- GitHub Actions workflow configured to run the Node.js test suite on pushes and pull requests.
+- Initial architecture, threat model, security policy, contribution rules, compliance release checklist, decision log and staged roadmap.
 
 ## Not implemented
 
-- Production frontend, backend API, accounts, live order book, or Nostr relay service.
-- Canonical Nostr order-event signing/verification, authorization, replay protection across clients, anti-spam, or multi-relay discovery.
-- Bitcoin Core node integration or independently verified chain observer.
-- Production PSBT parser, transaction construction, fee/dust policy, wallet integration, or hardware-signer flow.
-- Escrow, arbitration, timeout/refund contract, or real settlement.
-- Mainnet/testnet deployment, production monitoring, backup/restore drills, incident-response exercises, or independent audits.
-- Jurisdiction-specific legal analysis, required registrations, or an approved USD payment rail.
+- Production frontend, backend API, accounts, live order book or relay service.
+- Nostr order-event schema, BIP-340/Schnorr signature verification, event authorization, anti-spam or replay-resistant multi-relay implementation.
+- Bitcoin Core integration or independently verified chain observer.
+- PSBT parser, transaction construction, fee policy, wallet integration or hardware-signer flow.
+- USD payment integrations, fiat escrow, arbitration, bank verification or refunds.
+- Mainnet/testnet deployment, monitoring, backups, incident-response drills or independent security audits.
+- Jurisdiction-specific legal/compliance approval.
 
 ## Current blockers
 
-1. **Settlement model:** direct payment, 2-of-2 timeout, and 2-of-3 escrow have different recovery and trust assumptions. None is approved.
-2. **USD rails and jurisdictions:** BTC/USD is the first market, but the USD payment method, supported countries, and legal operating model are open.
-3. **Trust-boundary implementation:** the prototype state machine accepts already-validated events. It does not authenticate event sources or independently verify Nostr signatures, PSBTs, transactions, blocks, or node responses.
-4. **Operational assurance:** no production environment, recovery drill, specialist audit, or release approval exists.
+1. **USD rails and jurisdictions:** no ACH, wire, card, cash, payment-app or other USD rail is selected. Countries and customer eligibility require counsel review.
+2. **Settlement model:** direct counterparty settlement, 2-of-2 timeout and 2-of-3 escrow have different recovery and trust assumptions. None is approved.
+3. **Trust-boundary implementation:** the order validator checks payload structure only and does not authenticate a maker. State-machine events are trusted inputs. Neither currently verifies a PSBT, Bitcoin transaction, block, node response or USD payment.
 
 ## Next engineering sequence
 
-1. Define a canonical signed BTC/USD order event, including nonce/identity, cancellation, expiry, partial fills, replay rules, price ticks, minimum size, and quote rounding.
-2. Specify and compare direct settlement, 2-of-2 timeout, and 2-of-3 escrow with adversarial recovery scenarios.
-3. Implement protocol-critical logic in a strongly typed Rust crate, with property and fuzz tests.
-4. Implement Nostr signature verification and multi-relay discovery.
-5. Implement an isolated Bitcoin Core observer with reorg, conflict, mempool, and replacement tracking.
-6. Implement PSBT parsing and strict comparison against agreed trade intent, then integrate user-controlled signing.
-7. Run regtest adversarial simulations and independent specialist review before any public test deployment.
+1. Specify the signed BTC/USD order event, including event identity, nonce/replay protection, expiry, cancellation, partial fill and signature test vectors.
+2. Select supported jurisdictions and a USD payment model after qualified legal review.
+3. Compare direct settlement, cooperative Bitcoin contracts and escrow with a written dispute/recovery policy.
+4. Implement Nostr event verification and multi-relay order discovery.
+5. Implement an isolated Bitcoin Core observer with reorg and conflict tracking.
+6. Implement PSBT parsing and strict comparison against agreed trade intent, followed by user-controlled wallet signing.
+7. Run regtest adversarial simulations and independent review before any public test deployment.
 
 ## Release restriction
 
-Mainnet and customer funds remain disabled. Passing CI validates only the tested prototype behavior; it is not a security audit. BITE must not be described as Binance-level, production-grade, risk-free, or ready for real trading.
+Mainnet and customer funds remain disabled. Prototype tests are not a security audit, and BITE must not be described as Binance-level, production-grade or risk-free.

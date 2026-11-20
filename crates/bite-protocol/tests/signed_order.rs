@@ -1,5 +1,5 @@
 use bite_protocol::{
-    verify_signed_btc_usd_order_event, ProtocolError, ValidationPolicy, MAX_EVENT_BYTES,
+    verify_signed_btc_usd_order_event, ProtocolError, ReplayGuard, ValidationPolicy, MAX_EVENT_BYTES,
 };
 use nostr::prelude::*;
 use serde_json::{json, Value};
@@ -30,16 +30,19 @@ fn sign_content(content: String, created_at: u64) -> String {
         .expect("serialize signed event")
 }
 
-fn signed_order(mut order: Value, event_created_at: u64) -> String {
-    let keys = Keys::generate();
+fn signed_order_with_keys(mut order: Value, keys: &Keys, event_created_at: u64) -> String {
     order["makerPubkey"] = json!(keys.public_key().to_hex());
     let content = serde_json::to_string(&order).expect("serialize order");
     EventBuilder::new(Kind::TextNote, content)
         .custom_created_at(Timestamp::from_secs(event_created_at))
-        .finalize(&keys)
+        .finalize(keys)
         .expect("sign event")
         .try_as_json()
         .expect("serialize signed event")
+}
+
+fn signed_order(order: Value, event_created_at: u64) -> String {
+    signed_order_with_keys(order, &Keys::generate(), event_created_at)
 }
 
 fn policy() -> ValidationPolicy {
@@ -50,12 +53,12 @@ fn policy() -> ValidationPolicy {
 fn valid_signed_order_verifies_event_and_binds_author_and_timestamp() {
     let event = signed_order(valid_order("", NOW), NOW);
     let verified = verify_signed_btc_usd_order_event(&event, policy()).expect("valid order");
-    assert_eq!(verified.order.market, "BTC-USD");
-    assert_eq!(verified.order.side, bite_protocol::OrderSide::Buy);
-    assert_eq!(verified.order.size_sats, "1000");
-    assert_eq!(verified.order.created_at, NOW);
+    assert_eq!(verified.order().market, "BTC-USD");
+    assert_eq!(verified.order().side, bite_protocol::OrderSide::Buy);
+    assert_eq!(verified.order().size_sats, "1000");
+    assert_eq!(verified.order().created_at, NOW);
     assert_eq!(verified.maker_pubkey, verified.order.maker_pubkey);
-    assert_eq!(verified.event_id.len(), 64);
+    assert_eq!(verified.event_id().len(), 64);
 }
 
 #[test]
@@ -194,4 +197,101 @@ fn policy_requires_a_non_zero_maximum_ttl() {
         verify_signed_btc_usd_order_event(&event, invalid_policy),
         Err(ProtocolError::InvalidPolicy)
     );
+}
+
+#[test]
+fn replay_guard_rejects_same_event_delivered_by_multiple_relays() {
+    let event = signed_order(valid_order("", NOW), NOW);
+    let verified = verify_signed_btc_usd_order_event(&event, policy()).unwrap();
+    let mut guard = ReplayGuard::new(16).unwrap();
+
+    assert_eq!(guard.accept(&verified, NOW), Ok(()));
+    assert_eq!(
+        guard.accept(&verified, NOW),
+        Err(ProtocolError::DuplicateEvent)
+    );
+    assert_eq!(guard.len(), 1);
+}
+
+#[test]
+fn replay_guard_rejects_same_maker_order_id_republished_in_a_new_event() {
+    let keys = Keys::generate();
+    let first = signed_order_with_keys(valid_order("", NOW), &keys, NOW);
+    let mut second_order = valid_order("", NOW + 1);
+    second_order["expiresAt"] = json!(NOW + 601);
+    let second = signed_order_with_keys(second_order, &keys, NOW + 1);
+
+    let verified_first = verify_signed_btc_usd_order_event(&first, policy()).unwrap();
+    let verified_second =
+        verify_signed_btc_usd_order_event(&second, policy()).unwrap();
+
+    let mut guard = ReplayGuard::new(16).unwrap();
+    assert_eq!(guard.accept(&verified_first, NOW), Ok(()));
+    assert_eq!(
+        guard.accept(&verified_second, NOW + 1),
+        Err(ProtocolError::DuplicateOrder)
+    );
+}
+
+#[test]
+fn replay_guard_namespaces_order_ids_by_maker_key() {
+    let first_keys = Keys::generate();
+    let second_keys = Keys::generate();
+    let first = signed_order_with_keys(valid_order("", NOW), &first_keys, NOW);
+    let second = signed_order_with_keys(valid_order("", NOW), &second_keys, NOW);
+    let verified_first = verify_signed_btc_usd_order_event(&first, policy()).unwrap();
+    let verified_second = verify_signed_btc_usd_order_event(&second, policy()).unwrap();
+
+    let mut guard = ReplayGuard::new(2).unwrap();
+    assert_eq!(guard.accept(&verified_first, NOW), Ok(()));
+    assert_eq!(guard.accept(&verified_second, NOW), Ok(()));
+    assert_eq!(guard.len(), 2);
+}
+
+#[test]
+fn replay_guard_never_evicts_live_entries_when_full() {
+    let keys = Keys::generate();
+    let first = signed_order_with_keys(valid_order("", NOW), &keys, NOW);
+    let mut second_order = valid_order("", NOW + 1);
+    second_order["orderId"] = json!("d".repeat(64));
+    let second = signed_order_with_keys(second_order, &keys, NOW + 1);
+    let verified_first = verify_signed_btc_usd_order_event(&first, policy()).unwrap();
+    let verified_second = verify_signed_btc_usd_order_event(&second, policy()).unwrap();
+
+    let mut guard = ReplayGuard::new(1).unwrap();
+    assert_eq!(guard.accept(&verified_first, NOW), Ok(()));
+    assert_eq!(
+        guard.accept(&verified_second, NOW + 1),
+        Err(ProtocolError::ReplayGuardAtCapacity)
+    );
+    assert_eq!(guard.len(), 1);
+    assert_eq!(
+        guard.accept(&verified_first, NOW + 1),
+        Err(ProtocolError::DuplicateEvent)
+    );
+}
+
+#[test]
+fn replay_guard_prunes_expired_entries_and_rejects_zero_capacity() {
+    assert!(matches!(
+        ReplayGuard::new(0),
+        Err(ProtocolError::InvalidReplayGuardCapacity)
+    ));
+
+    let keys = Keys::generate();
+    let first = signed_order_with_keys(valid_order("", NOW), &keys, NOW);
+    let verified_first = verify_signed_btc_usd_order_event(&first, policy()).unwrap();
+
+    let mut guard = ReplayGuard::new(1).unwrap();
+    assert_eq!(guard.accept(&verified_first, NOW), Ok(()));
+
+    let next_now = NOW + 600;
+    let second = signed_order_with_keys(valid_order("", next_now), &keys, next_now);
+    let verified_second = verify_signed_btc_usd_order_event(
+        &second,
+        ValidationPolicy::at(next_now),
+    ).unwrap();
+
+    assert_eq!(guard.accept(&verified_second, next_now), Ok(()));
+    assert_eq!(guard.len(), 1);
 }

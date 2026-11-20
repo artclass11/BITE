@@ -17,6 +17,29 @@ Before offering BITE services to users in India, obtain advice from qualified In
 
 FIU-IND publishes VDA-related AML/CFT guidance and registration materials. The applicable version and scope must be confirmed by counsel at the time of launch; regulatory material may change.
 
+## U.S.-specific review gate for BTC/USD
+
+USD is a quote currency, not a decision to serve U.S. customers or operate from the United States. Before accepting U.S. persons, using U.S. payment rails, or establishing a U.S. operating presence, obtain advice from qualified U.S. counsel on the exact protocol, matching, custody, escrow, payment and dispute functions.
+
+Review, at minimum:
+
+- Whether BITE, its operator, a matching/indexing service, relay, escrow provider, or payment partner is an exchanger or money transmitter under the Bank Secrecy Act and FinCEN's rules.
+- Whether any limitation or exemption applies to the actual non-custodial or peer-to-peer arrangement; do not assume software-only, non-custodial, or decentralized architecture is exempt without a fact-specific analysis.
+- FinCEN MSB registration, AML program, customer due diligence, recordkeeping and reporting obligations, if applicable.
+- State-by-state money-transmission / virtual-currency licensing and any federal or state consumer-protection, sanctions, privacy, tax and payments requirements.
+- CFTC anti-fraud and anti-manipulation jurisdiction over relevant virtual-currency spot-market conduct and whether any additional activity changes the analysis.
+- USD payment-rail requirements, reversibility, ACH return risk, wire recalls, card chargebacks, fraud evidence, account name matching, holds, freezes and dispute processes.
+
+FinCEN's 2019 guidance describes how its existing rules apply to certain convertible-virtual-currency business models. Its 2013 guidance addresses users, exchangers and administrators and explains that exchanger/administrator activities may be money transmission unless an applicable limitation or exemption applies. These are important starting points, not a legal conclusion about BITE. The CFTC also explains that it has general anti-fraud and anti-manipulation enforcement authority in virtual-currency cash markets and points users to MSB and state-level registration information.
+
+Reference sources:
+
+- [FinCEN FIN-2019-G001 — Application of FinCEN's Regulations to Certain Business Models Involving Convertible Virtual Currencies](https://www.fincen.gov/resources/statutes-regulations/guidance/application-fincens-regulations-certain-business-models)
+- [FinCEN FIN-2013-G001 — Application of FinCEN's Regulations to Persons Administering, Exchanging, or Using Virtual Currencies](https://www.fincen.gov/resources/statutes-regulations/guidance/application-fincens-regulations-persons-administering)
+- [CFTC — Be Smart: Check Registration & Backgrounds Before You Trade](https://www.cftc.gov/check)
+
+This checklist is not legal advice and does not determine whether BITE or any participant is regulated. The assessment must be based on the deployed product and the current law in every target jurisdiction.
+
 ## Release blockers
 
 Do not enable real users or real funds until all relevant items are evidenced and approved:

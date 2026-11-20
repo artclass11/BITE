@@ -45,7 +45,7 @@ This is a gate-based roadmap, not a promised delivery schedule. A stage is compl
 
 **Exit gate:** tests prove no single application API can fabricate settlement or move user funds. The current regtest smoke test only proves isolated node startup and test-block generation; it does not satisfy the RPC/settlement exit gate.
 
-**Stage 2 progress note:** durable local replay is implemented, but Stage 2 is not complete. Bitcoin Core regtest integration, PSBT validation/construction, simulated two-party signing and property/fuzz coverage still block its exit gate.
+**Stage 2 progress note:** durable local replay and the isolated Bitcoin Core regtest smoke environment are implemented and pass CI, but Stage 2 is not complete. The BITE application's read-only RPC/chain observer, PSBT construction and strict validation, simulated two-party signing, and property/fuzz coverage still block its exit gate.
 
 ## Stage 3 — Wallet and decentralized discovery
 

@@ -5,7 +5,7 @@
 //! connect to relays, enforce global replay/uniqueness, match orders, verify
 //! Bitcoin ownership, parse PSBTs, observe chain state, or settle USD/BTC.
 
-use nostr::Event;
+use nostr::event::Event;
 use serde::Deserialize;
 use std::fmt;
 

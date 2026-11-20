@@ -1,0 +1,24 @@
+name: Temporary BITE lockfile export
+
+on:
+  push:
+    branches:
+      - feat/rust-protocol-core
+
+permissions:
+  contents: read
+
+jobs:
+  export-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Generate and print Cargo.lock
+        run: |
+          cargo generate-lockfile
+          echo "BITE_LOCKFILE_BEGIN"
+          cat Cargo.lock
+          echo "BITE_LOCKFILE_END"

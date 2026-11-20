@@ -26,7 +26,8 @@
 - BTC/USD price comparison using integer arithmetic.
 - Trade-state machine prototype with immutable aggregate transitions, state invariants, PSBT-hash binding, signature-policy milestones, confirmation thresholds, chain conflict handling, reorgs, refund-intent/transaction binding, refund finality and refund reorg handling.
 - Automated tests for BTC/USD order validation and trade-state transitions.
-- GitHub Actions workflow configured to run the Node.js test suite on pushes and pull requests; latest verified workflow run at the time of this snapshot reported 27 tests passed.
+- GitHub Actions runs 27 JavaScript tests and 24 Rust tests (9 unit + 15 integration), plus rustfmt and Clippy with warnings denied. Verified all-green run: [44785971036](https://github.com/artclass11/BITE/actions/runs/44785971036).
+- The same run passed the Bitcoin Core 32.1 regtest smoke test: `chain=regtest`, 101 blocks, no RPC/P2P ports published, followed by container/volume cleanup.
 - CODEOWNERS file added; main-branch protection is not enabled yet and is tracked in GitHub issue #5.
 - Initial architecture, threat model, security policy, contribution rules, compliance release checklist, decision log and staged roadmap.
 

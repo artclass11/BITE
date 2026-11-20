@@ -17,7 +17,8 @@ This is a gate-based roadmap, not a promised delivery schedule. A stage is compl
 
 - [x] Add an initial BTC/USD order-payload validator and integer quote arithmetic prototype (not yet a signed Nostr protocol).
 - [ ] Define canonical signed order schema and versioning.
-- [ ] Define order identity, nonce, expiry, cancellation, partial-fill, and replay rules.
+- [x] Add a bounded in-process replay guard for event IDs and maker-scoped order IDs.
+- [ ] Define durable order identity, nonce, expiry, cancellation, partial-fill, and cross-client replay rules.
 - [ ] Define deterministic trade state machine and transition authorization.
 - [ ] Define fee, dust, amount, price-tick, partial-fill, rounding, and change-output policy.
 - [x] Confirm USD as the quote currency and document the off-chain trust boundary.
@@ -58,7 +59,7 @@ This is a gate-based roadmap, not a promised delivery schedule. A stage is compl
 - [ ] PSBT substitution and fee-manipulation suite.
 - [ ] Relay flooding and malformed-message suite.
 - [ ] RPC boundary and infrastructure penetration testing.
-- [ ] Dependency, build, and release-provenance audit.
+- [ ] Dependency, build, and release-provenance audit (Cargo.lock is committed and CI uses `--locked`; independent dependency review remains pending).
 - [ ] External specialist protocol and cryptography review.
 - [ ] Remediate and close critical/high findings.
 

@@ -21,7 +21,7 @@ compose() {
 }
 
 btc_cli() {
-  compose exec --no-TTY bitcoind bitcoin-cli -regtest "$@"
+  compose exec --no-TTY bitcoind bitcoin-cli -datadir=/home/bitcoin/.bitcoin -rpcconnect=127.0.0.1 -regtest "$@"
 }
 
 echo "Starting an isolated Bitcoin Core regtest node..."

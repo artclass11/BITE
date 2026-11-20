@@ -9,7 +9,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   generate-and-verify:
@@ -19,7 +19,8 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          persist-credentials: false
+          ref: ${{ github.head_ref || github.ref_name }}
+          persist-credentials: true
       - name: Set up Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -32,6 +33,20 @@ jobs:
         run: cargo test --locked --workspace
       - name: Run Clippy with warnings denied
         run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - name: Commit generated lockfile to the feature branch
+        if: github.event_name == 'pull_request'
+        env:
+          TARGET_BRANCH: ${{ github.head_ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- Cargo.lock; then
+            echo "Cargo.lock is already current."
+            exit 0
+          fi
+          git add Cargo.lock
+          git commit -m "Lock Stage 2 SQLite dependencies"
+          git push origin "HEAD:${TARGET_BRANCH}"
       - name: Export generated lockfile
         uses: actions/upload-artifact@v4
         with:

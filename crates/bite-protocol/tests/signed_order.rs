@@ -101,9 +101,11 @@ fn event_and_payload_timestamps_must_match() {
 #[test]
 fn duplicate_and_unknown_order_fields_are_rejected() {
     let mut order = valid_order("", NOW);
-    let duplicate = serde_json::to_string(&order)
-        .expect("serialize")
-        .replacen("\"version\":1", "\"version\":1,\"version\":1", 1);
+    let duplicate = serde_json::to_string(&order).expect("serialize").replacen(
+        "\"version\":1",
+        "\"version\":1,\"version\":1",
+        1,
+    );
     let duplicate_event = sign_content(duplicate, NOW);
     assert_eq!(
         verify_signed_btc_usd_order_event(&duplicate_event, policy()),

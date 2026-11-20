@@ -43,6 +43,18 @@ function broadcastTrade() {
   return applyTradeEvent(readyTrade(), { type: "TRANSACTION_BROADCAST", txid: HASH_C });
 }
 
+function disputedTrade() {
+  return applyTradeEvent(broadcastTrade(), {
+    type: "RAISE_DISPUTE", disputeCode: "manual-dispute"
+  });
+}
+
+function refundBroadcastTrade() {
+  return applyTradeEvent(disputedTrade(), {
+    type: "REFUND_BROADCAST", refundIntentHash: HASH_A, refundTxid: HASH_B
+  });
+}
+
 test("a complete valid flow reaches SETTLED only at the configured confirmation threshold", () => {
   const original = broadcastTrade();
   const confirming = applyTradeEvent(original, {
@@ -178,4 +190,60 @@ test("unknown events fail closed", () => {
     () => applyTradeEvent(trade, { type: "MARK_AS_PAID_BY_WEBHOOK" }),
     (error) => error.code === "UNKNOWN_EVENT"
   );
+});
+test("refund must first be bound to a known intent and transaction", () => {
+  const disputed = disputedTrade();
+  assert.throws(() => applyTradeEvent(disputed, {
+    type: "REFUND_CONFIRMED", refundIntentHash: HASH_A, refundTxid: HASH_B,
+    blockHash: HASH_D, blockHeight: 102, confirmations: 3
+  }), (error) => error.code === "INVALID_STATE");
+
+  const refund = refundBroadcastTrade();
+  assert.throws(() => applyTradeEvent(refund, {
+    type: "REFUND_CONFIRMED", refundIntentHash: HASH_A, refundTxid: HASH_C,
+    blockHash: HASH_D, blockHeight: 102, confirmations: 3
+  }), (error) => error.code === "REFUND_MISMATCH");
+  assert.throws(() => applyTradeEvent(refund, {
+    type: "REFUND_CONFIRMED", refundIntentHash: HASH_D, refundTxid: HASH_B,
+    blockHash: HASH_D, blockHeight: 102, confirmations: 3
+  }), (error) => error.code === "REFUND_MISMATCH");
+});
+
+test("a refund is not final until its own confirmation policy is met, and refund reorgs reopen it", () => {
+  let trade = refundBroadcastTrade();
+  assert.throws(() => applyTradeEvent(trade, {
+    type: "REFUND_CONFIRMED", refundIntentHash: HASH_A, refundTxid: HASH_B,
+    blockHash: HASH_D, blockHeight: 102, confirmations: 2
+  }), (error) => error.code === "REFUND_NOT_FINAL");
+  trade = applyTradeEvent(trade, {
+    type: "REFUND_CONFIRMED", refundIntentHash: HASH_A, refundTxid: HASH_B,
+    blockHash: HASH_D, blockHeight: 102, confirmations: 3
+  });
+  assert.equal(trade.state, TradeState.REFUNDED);
+  trade = applyTradeEvent(trade, { type: "REFUND_REORG_OBSERVED", orphanedBlockHash: HASH_D });
+  assert.equal(trade.state, TradeState.REFUND_BROADCAST);
+  assert.equal(trade.refundTxid, HASH_B, "refund identity remains bound after reorg");
+  assert.equal(trade.refundBlockHash, null);
+});
+
+test("a settled trade cannot be forged from an inconsistent aggregate", () => {
+  const forged = {
+    ...createTrade({ id: "forged" }),
+    state: TradeState.SETTLED,
+    txid: HASH_C,
+    confirmations: 1,
+    blockHash: HASH_D,
+    blockHeight: 100
+  };
+  assert.throws(
+    () => applyTradeEvent(forged, { type: "RAISE_DISPUTE", disputeCode: "test" }),
+    (error) => error.code === "INVALID_TRADE"
+  );
+});
+
+test("a chain conflict cannot name the current trade transaction as its own conflict", () => {
+  const trade = broadcastTrade();
+  assert.throws(() => applyTradeEvent(trade, {
+    type: "CHAIN_CONFLICT", conflictingTxid: HASH_C, disputeCode: "bad-conflict"
+  }), (error) => error.code === "CONFLICT_TXID_MATCH");
 });

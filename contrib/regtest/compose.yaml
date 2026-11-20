@@ -1,0 +1,38 @@
+services:
+  bitcoind:
+    image: bitcoin/bitcoin:32.1
+    init: true
+    command:
+      - -printtoconsole
+      - -regtest=1
+      - -server=1
+      - -listen=0
+      - -connect=0
+      - -dnsseed=0
+      - -discover=0
+      - -upnp=0
+      - -txindex=1
+      - -fallbackfee=0.0002
+    volumes:
+      - regtest-data:/home/bitcoin/.bitcoin
+    networks:
+      - regtest-isolated
+    healthcheck:
+      test: ["CMD", "bitcoin-cli", "-regtest", "getblockchaininfo"]
+      interval: 2s
+      timeout: 5s
+      retries: 45
+      start_period: 5s
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+
+networks:
+  regtest-isolated:
+    internal: true
+
+volumes:
+  regtest-data:

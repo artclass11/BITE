@@ -1,0 +1,3 @@
+[workspace]
+members = ["crates/bite-protocol"]
+resolver = "2"

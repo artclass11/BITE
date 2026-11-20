@@ -43,6 +43,11 @@ function parseCanonicalUint(value, field, max) {
   if (typeof value !== "string" || !CANONICAL_UINT.test(value)) {
     reject("NON_CANONICAL_INTEGER", field + " must be a canonical unsigned decimal string");
   }
+  // Bound the input before BigInt parsing so untrusted order payloads cannot
+  // force arbitrarily large integer parsing work.
+  if (value.length > max.toString().length) {
+    reject("OUT_OF_RANGE", field + " exceeds the permitted maximum");
+  }
   const parsed = BigInt(value);
   if (parsed <= 0n) reject("OUT_OF_RANGE", field + " must be greater than zero");
   if (parsed > max) reject("OUT_OF_RANGE", field + " exceeds the permitted maximum");

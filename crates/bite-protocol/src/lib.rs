@@ -21,6 +21,7 @@ pub const MAX_ORDER_CONTENT_BYTES: usize = 8 * 1024;
 pub const MAX_EVENT_TAGS: usize = 128;
 pub const MAX_EVENT_TAG_ELEMENTS: usize = 512;
 pub const MAX_EVENT_TAG_VALUE_BYTES: usize = 256;
+pub const MAX_REPLAY_GUARD_ENTRIES: usize = 100_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProtocolError {
@@ -140,7 +141,7 @@ impl ReplayGuard {
     /// Create a guard with a fixed maximum number of simultaneously live
     /// maker/order-ID pairs. It never evicts unexpired entries to make room.
     pub fn new(max_entries: usize) -> Result<Self, ProtocolError> {
-        if max_entries == 0 {
+        if max_entries == 0 || max_entries > MAX_REPLAY_GUARD_ENTRIES {
             return Err(ProtocolError::InvalidReplayGuardCapacity);
         }
         Ok(Self {

@@ -154,7 +154,10 @@ pub fn verify_signed_btc_usd_order_event(
         tag_elements = tag_elements
             .checked_add(tag.len())
             .ok_or(ProtocolError::EventTagsTooLarge)?;
-        if tag.iter().any(|value| value.len() > MAX_EVENT_TAG_VALUE_BYTES) {
+        if tag
+            .iter()
+            .any(|value| value.len() > MAX_EVENT_TAG_VALUE_BYTES)
+        {
             return Err(ProtocolError::EventTagsTooLarge);
         }
     }
@@ -168,8 +171,7 @@ pub fn verify_signed_btc_usd_order_event(
 
     // Ensure the strict pre-parse and library parse agree on the public fields.
     // The cryptographic library validates the NIP-01 event ID and BIP-340 signature.
-    let event = Event::from_json(raw_event_json)
-        .map_err(|_| ProtocolError::InvalidEventJson)?;
+    let event = Event::from_json(raw_event_json).map_err(|_| ProtocolError::InvalidEventJson)?;
     if event.id.to_hex() != envelope.id
         || event.pubkey.to_hex() != envelope.pubkey
         || event.created_at.as_secs() != envelope.created_at
@@ -183,8 +185,8 @@ pub fn verify_signed_btc_usd_order_event(
         .verify()
         .map_err(|_| ProtocolError::InvalidEventAuthenticity)?;
 
-    let order: BtcUsdOrder = serde_json::from_str(&event.content)
-        .map_err(|_| ProtocolError::InvalidOrderJson)?;
+    let order: BtcUsdOrder =
+        serde_json::from_str(&event.content).map_err(|_| ProtocolError::InvalidOrderJson)?;
     validate_order(&order, policy)?;
 
     let event_maker = event.pubkey.to_hex();
@@ -202,10 +204,7 @@ pub fn verify_signed_btc_usd_order_event(
     })
 }
 
-pub fn validate_order(
-    order: &BtcUsdOrder,
-    policy: ValidationPolicy,
-) -> Result<(), ProtocolError> {
+pub fn validate_order(order: &BtcUsdOrder, policy: ValidationPolicy) -> Result<(), ProtocolError> {
     if policy.max_ttl_seconds == 0 {
         return Err(ProtocolError::InvalidPolicy);
     }
@@ -223,10 +222,7 @@ pub fn validate_order(
         return Err(ProtocolError::InvalidMakerPubkey);
     }
 
-    parse_positive_canonical_u128(
-        &order.price_usd_micros_per_btc,
-        MAX_PRICE_MICRO_USD_PER_BTC,
-    )?;
+    parse_positive_canonical_u128(&order.price_usd_micros_per_btc, MAX_PRICE_MICRO_USD_PER_BTC)?;
     parse_positive_canonical_u128(&order.size_sats, MAX_BITCOIN_SUPPLY_SATS)?;
 
     if order.expires_at <= order.created_at {

@@ -18,7 +18,8 @@ This is a gate-based roadmap, not a promised delivery schedule. A stage is compl
 - [x] Add an initial BTC/USD order-payload validator and integer quote arithmetic prototype (not yet a signed Nostr protocol).
 - [ ] Define canonical signed order schema and versioning.
 - [x] Add a bounded in-process replay guard for event IDs and maker-scoped order IDs.
-- [ ] Define durable order identity, nonce, expiry, cancellation, partial-fill, and cross-client replay rules.
+- [x] Add a versioned, bounded SQLite local replay store with atomic uniqueness checks and restart persistence.
+- [ ] Define durable cross-client order identity, nonce, expiry, cancellation, partial-fill, and replay rules.
 - [ ] Define deterministic trade state machine and transition authorization.
 - [ ] Define fee, dust, amount, price-tick, partial-fill, rounding, and change-output policy.
 - [x] Confirm USD as the quote currency and document the off-chain trust boundary.
@@ -34,6 +35,7 @@ This is a gate-based roadmap, not a promised delivery schedule. A stage is compl
 - [x] Rust workspace for BTC/USD domain and protocol types.
 - [x] Deterministic BTC/USD order validation with bounded integer parsing.
 - [x] Verify Nostr event ID/signature and bind order maker/timestamp (BITE event kind/tags and global replay rules remain pending).
+- [x] Persist local replay keys across restarts with SQLite (cross-device/global replay remains pending).
 - [ ] Local regtest Bitcoin Core integration.
 - [ ] PSBT construction and strict validation.
 - [ ] Simulated two-party signing with disposable test keys.
@@ -41,6 +43,8 @@ This is a gate-based roadmap, not a promised delivery schedule. A stage is compl
 - [ ] No mainnet configuration in the default build.
 
 **Exit gate:** tests prove no single application API can fabricate settlement or move user funds.
+
+**Stage 2 progress note:** durable local replay is implemented, but Stage 2 is not complete. Bitcoin Core regtest integration, PSBT validation/construction, simulated two-party signing and property/fuzz coverage still block its exit gate.
 
 ## Stage 3 — Wallet and decentralized discovery
 

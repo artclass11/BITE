@@ -15,12 +15,14 @@
 
 - Security-first README and explicit non-custodial design principles.
 - ADR 0001 selecting BTC/USD and documenting off-chain USD settlement limitations.
+- BTC/USD order payload v1 prototype contract documenting fields, integer units, exact quote arithmetic, time policy, proposed Nostr envelope requirements and unresolved semantics.
 - BTC/USD order-payload validator with canonical integer strings, market and side restrictions, maker/order identifier format checks, expiry checks and unknown-field rejection.
 - Exact rational quote-notional arithmetic; the prototype performs no floating-point monetary calculations and deliberately does not round settlement amounts.
 - BTC/USD price comparison using integer arithmetic.
 - Trade-state machine prototype with immutable aggregate transitions, state invariants, PSBT-hash binding, signature-policy milestones, confirmation thresholds, chain conflict handling, reorgs, refund-intent/transaction binding, refund finality and refund reorg handling.
 - Automated tests for BTC/USD order validation and trade-state transitions.
-- GitHub Actions workflow configured to run the Node.js test suite on pushes and pull requests.
+- GitHub Actions workflow configured to run the Node.js test suite on pushes and pull requests; latest verified workflow run at the time of this snapshot reported 27 tests passed.
+- CODEOWNERS file added; main-branch protection is not enabled yet and is tracked in GitHub issue #5.
 - Initial architecture, threat model, security policy, contribution rules, compliance release checklist, decision log and staged roadmap.
 
 ## Not implemented
@@ -41,7 +43,7 @@
 
 ## Next engineering sequence
 
-1. Specify the signed BTC/USD order event, including event identity, nonce/replay protection, expiry, cancellation, partial fill and signature test vectors.
+1. Implement and review the signed BTC/USD Nostr event envelope, including event identity, nonce/replay protection, expiry, cancellation, partial fill and signature test vectors, based on docs/protocol/BTC_USD_ORDER_V1.md.
 2. Select supported jurisdictions and a USD payment model after qualified legal review.
 3. Compare direct settlement, cooperative Bitcoin contracts and escrow with a written dispute/recovery policy.
 4. Implement Nostr event verification and multi-relay order discovery.

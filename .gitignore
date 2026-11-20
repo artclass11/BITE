@@ -14,6 +14,8 @@ credentials/
 *.sqlite
 *.sqlite3
 *.db
+*-wal
+*-shm
 *.log
 data/
 logs/

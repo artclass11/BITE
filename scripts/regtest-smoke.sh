@@ -25,7 +25,11 @@ btc_cli() {
 }
 
 echo "Starting an isolated Bitcoin Core regtest node..."
-compose up --detach --wait --wait-timeout 120 bitcoind
+if ! compose up --detach --wait --wait-timeout 120 bitcoind; then
+  echo "Bitcoin Core failed its startup/health check; container logs follow:" >&2
+  compose logs --no-color bitcoind >&2 || true
+  exit 1
+fi
 
 chain_info="$(btc_cli getblockchaininfo)"
 if ! grep -Eq '"chain"[[:space:]]*:[[:space:]]*"regtest"' <<<"$chain_info"; then

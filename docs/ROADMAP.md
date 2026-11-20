@@ -15,11 +15,13 @@ This is a gate-based roadmap, not a promised delivery schedule. A stage is compl
 
 ## Stage 1 — Protocol specification
 
+- [x] Add an initial BTC/USD order-payload validator and integer quote arithmetic prototype (not yet a signed Nostr protocol).
 - [ ] Define canonical signed order schema and versioning.
 - [ ] Define order identity, nonce, expiry, cancellation, partial-fill, and replay rules.
 - [ ] Define deterministic trade state machine and transition authorization.
-- [ ] Define fee, dust, amount, rounding, and change-output policy.
-- [ ] Decide whether fiat rails are in scope and disclose their trust assumptions.
+- [ ] Define fee, dust, amount, price-tick, partial-fill, rounding, and change-output policy.
+- [x] Confirm USD as the quote currency and document the off-chain trust boundary.
+- [ ] Select USD payment rails after jurisdiction-specific legal, fraud and reversibility review.
 - [ ] Compare direct payment, 2-of-2 timeout, and 2-of-3 escrow models.
 - [ ] Define node verification and confirmation/reorg policy.
 - [ ] Write test vectors and protocol invariants.

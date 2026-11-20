@@ -170,18 +170,21 @@ test("a refund is not final until its own confirmation policy is met, and refund
   let trade = applyTradeEvent(broadcastTrade(), {
     type: "RAISE_DISPUTE", disputeCode: "manual-dispute"
   });
+  trade = applyTradeEvent(trade, {
+    type: "REFUND_BROADCAST", refundIntentHash: HASH_A, refundTxid: HASH_B
+  });
   assert.throws(() => applyTradeEvent(trade, {
-    type: "REFUND_CONFIRMED", refundTxid: HASH_A, blockHash: HASH_D,
-    blockHeight: 102, confirmations: 2
+    type: "REFUND_CONFIRMED", refundIntentHash: HASH_A, refundTxid: HASH_B,
+    blockHash: HASH_D, blockHeight: 102, confirmations: 2
   }), (error) => error.code === "REFUND_NOT_FINAL");
   trade = applyTradeEvent(trade, {
-    type: "REFUND_CONFIRMED", refundTxid: HASH_A, blockHash: HASH_D,
-    blockHeight: 102, confirmations: 3
+    type: "REFUND_CONFIRMED", refundIntentHash: HASH_A, refundTxid: HASH_B,
+    blockHash: HASH_D, blockHeight: 102, confirmations: 3
   });
   assert.equal(trade.state, TradeState.REFUNDED);
   trade = applyTradeEvent(trade, { type: "REFUND_REORG_OBSERVED", orphanedBlockHash: HASH_D });
-  assert.equal(trade.state, TradeState.DISPUTED);
-  assert.equal(trade.refundTxid, null);
+  assert.equal(trade.state, TradeState.REFUND_BROADCAST);
+  assert.equal(trade.refundTxid, HASH_B);
 });
 
 test("unknown events fail closed", () => {

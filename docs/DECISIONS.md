@@ -2,12 +2,14 @@
 
 This file records decisions that materially affect security, decentralization, and product promises. New decisions should be added as dated Architecture Decision Records (ADRs), with alternatives and consequences.
 
+## Accepted decisions
+
+### D-001 — First market and quote asset
+**Status:** accepted; see [ADR 0001](adr/0001-btc-usd-market.md).
+
+The first market is BTC/USD. Bitcoin is the only supported crypto asset. USD is the quote/reference currency. This does not decide the USD payment rail, supported jurisdictions, custody, escrow or settlement model. USD is off-chain, so the product must not describe fiat settlement as trustless.
+
 ## Open decisions
-
-### D-001 — What does “Bitcoin-only exchange” mean for the first market?
-**Status:** open.
-
-Bitcoin is the only supported crypto asset. An exchange still needs a quote/counter-asset or a clear barter model. BTC/fiat introduces an off-chain payment leg that cannot be enforced by Bitcoin consensus. Before implementing trade settlement, select the exact first market and quote rail and document its trust assumptions.
 
 ### D-002 — Custody model
 **Status:** proposed invariant.
@@ -28,6 +30,11 @@ Evaluate direct payment, 2-of-2 with timeout, and 2-of-3 escrow. Do not assume m
 **Status:** proposed for prototype.
 
 Use Rust for protocol-critical transaction and state-machine logic, with standard maintained Bitcoin libraries. Choose the web/client stack after the protocol boundary is stable. Keep application services replaceable and avoid coupling custody or signing to the API.
+
+### D-006 — USD payment rails and jurisdictions
+**Status:** open; legal review required.
+
+USD is the quote unit, but no USD rail or country is approved. Before enabling real trades, determine supported countries and assess each payment flow, participants, custody/escrow and business role under applicable law. A decentralized or non-custodial label does not itself establish a legal exemption.
 
 ## ADR template
 

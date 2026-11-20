@@ -56,17 +56,18 @@ The JavaScript prototypes remain useful for fast state-machine and market-domain
 - strictly parses the outer Nostr event and BTC/USD order payload (unknown/duplicate fields fail closed);
 - verifies the Nostr event ID and Schnorr signature with the pinned `nostr = 0.45.7` library;
 - binds the order's `makerPubkey` and `createdAt` to the verified event author and timestamp;
-- enforces size limits, bounded integer parsing, BTC supply limits, order expiry and exact integer-rational quote arithmetic.
+- enforces size limits, bounded integer parsing, BTC supply limits, order expiry and exact integer-rational quote arithmetic;
+- provides a bounded in-process replay guard for duplicate event IDs and `(makerPubkey, orderId)` pairs, with expiry pruning and fail-closed capacity handling.
 
 Run both test suites with Node.js 22 and a stable Rust toolchain:
 
 ```sh
 npm test
 cargo fmt --all -- --check
-cargo test --workspace
+cargo test --locked --workspace
 ```
 
-This is still a protocol-core milestone, not a deployed exchange. The BITE order event kind/tags, global replay and uniqueness protection, cancellation, partial fills, relay network, Bitcoin Core observer, PSBT parsing, wallet signing, and settlement remain unimplemented. The Nostr verifier checks event authenticity, not BTC ownership or USD payment. GitHub Actions runs the Node.js and Rust checks on pushes and pull requests.
+This is still a protocol-core milestone, not a deployed exchange. The BITE order event kind/tags, durable cross-restart/cross-device replay protection, cancellation, partial fills, relay network, Bitcoin Core observer, PSBT parsing, wallet signing, and settlement remain unimplemented. The replay guard is process-local and must be shared by one serialized client ingest loop; it is not a distributed database or a substitute for persistent replay state. The Nostr verifier checks event authenticity, not BTC ownership or USD payment. GitHub Actions runs the Node.js and Rust checks with the committed `Cargo.lock` on pushes and pull requests.
 
 ## Development stages
 
@@ -77,7 +78,7 @@ This is still a protocol-core milestone, not a deployed exchange. The BITE order
 5. **Limited public test:** testnet/regtest only, public bug bounty or coordinated disclosure process, and no real funds.
 6. **Mainnet decision:** only after legal, security, operational, and independent audit gates are passed.
 
-The BTC/USD order payload contract is documented in [docs/protocol/BTC_USD_ORDER_V1.md](docs/protocol/BTC_USD_ORDER_V1.md). It is a prototype payload contract only; the signed Nostr envelope and cryptographic verification remain pending.
+The BTC/USD order payload contract and current Rust verifier/replay-guard boundary are documented in [docs/protocol/BTC_USD_ORDER_V1.md](docs/protocol/BTC_USD_ORDER_V1.md). The BITE-specific event kind, tags and durable cross-relay replay protocol remain pending.
 
 ## Security status
 

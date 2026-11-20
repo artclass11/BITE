@@ -4,11 +4,13 @@
 
 ## 1. Product definition
 
-BITE aims to be a Bitcoin-only peer-to-peer exchange. Bitcoin is the only supported crypto asset and the only on-chain settlement system.
+The first selected market is **BTC/USD**. Bitcoin is the only supported crypto asset; USD is the quote/reference currency. The first market has BUY and SELL order concepts.
 
-A market still needs a counter-asset or quote unit. If a future market is BTC/fiat, the fiat payment happens outside Bitcoin consensus. Neither a relay nor a Bitcoin script can prove that a bank transfer or cash payment occurred. Therefore, BTC/fiat trades are not fully trustless; any escrow, mediator, bank evidence, or reputation dependency must be visible to users.
+BTC/fiat requires an off-chain payment leg. Neither Bitcoin consensus nor a relay can prove that a bank transfer, wire, card, cash payment or other USD transfer occurred. BTC/USD must therefore not be described as fully trustless. Any escrow, mediator, payment evidence or reputation dependency must be visible to both parties.
 
-**Open product decision:** choose the first market and quote/payment rail before implementing settlement. Do not quietly infer that “Bitcoin-only” means BTC is the only asset, the only quote unit, or that fiat is supported.
+Order size is represented in integer satoshis. Limit price is represented in integer micro-USD per BTC (1 USD = 1,000,000 micro-USD). Quote notional uses exact integer/rational arithmetic; settlement rounding and payment precision remain open.
+
+**Open product decisions:** supported countries, eligible users, USD payment rails, custody/escrow, dispute/recovery and legal operating model. The BTC/USD quote choice does not answer those questions.
 
 ## 2. Security boundaries
 
@@ -88,7 +90,7 @@ A reorganization can move a previously confirming transaction back to an unconfi
 
 No state is advanced solely by a webhook, relay message, client-side timer, or database write.
 
-## 6. Settlement models — unresolved
+## 6. BTC/USD payment and settlement models — unresolved
 
 Possible mechanisms have different trust assumptions and must not be conflated:
 
@@ -97,7 +99,9 @@ Possible mechanisms have different trust assumptions and must not be conflated:
 - **2-of-3 escrow:** may support dispute resolution, but introduces an arbitrator key and trust; it is not fully trustless.
 - **Other Bitcoin-native contracts:** require a concrete threat model and review; do not market them as trustless without proving the exact properties.
 
-No escrow model is selected by this architecture. Mainnet settlement remains out of scope until the decision is recorded in an ADR and independently reviewed.
+No USD payment rail or escrow model is selected by this architecture. ACH, wire, card, cash and payment-app flows have different reversal, fraud, privacy, jurisdiction and evidence properties. BITE must not publish private payment details in public order events. Mainnet settlement remains out of scope until the decision is recorded in an ADR and independently reviewed.
+
+Any operator, relay/indexer, escrow provider or payment partner may have different legal obligations depending on its actual role and location. The project must not infer a regulatory exemption from the terms “peer-to-peer”, “non-custodial” or “decentralized”; see [COMPLIANCE.md](COMPLIANCE.md).
 
 ## 7. Reliability and privacy
 

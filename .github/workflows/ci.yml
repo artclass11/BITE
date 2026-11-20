@@ -21,11 +21,13 @@ jobs:
       - name: Set up Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt
+          components: rustfmt, clippy
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Run protocol tests
         run: cargo test --locked --workspace
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
   state-machine-tests:
     name: State-machine tests
     runs-on: ubuntu-latest

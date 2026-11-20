@@ -51,7 +51,22 @@ Run the tests with Node.js 22 or later:
 npm test
 ```
 
-The prototypes do **not** verify Nostr signatures, parse PSBTs, connect to relays or Bitcoin Core, determine USD payment status, manage keys, or broadcast transactions. Those integrations must be built and reviewed separately. GitHub Actions runs the same state-machine test suite on pushes and pull requests.
+The JavaScript prototypes remain useful for fast state-machine and market-domain tests. The Rust workspace adds `crates/bite-protocol`, which:
+
+- strictly parses the outer Nostr event and BTC/USD order payload (unknown/duplicate fields fail closed);
+- verifies the Nostr event ID and Schnorr signature with the pinned `nostr = 0.45.7` library;
+- binds the order's `makerPubkey` and `createdAt` to the verified event author and timestamp;
+- enforces size limits, bounded integer parsing, BTC supply limits, order expiry and exact integer-rational quote arithmetic.
+
+Run both test suites with Node.js 22 and a stable Rust toolchain:
+
+```sh
+npm test
+cargo fmt --all -- --check
+cargo test --workspace
+```
+
+This is still a protocol-core milestone, not a deployed exchange. The BITE order event kind/tags, global replay and uniqueness protection, cancellation, partial fills, relay network, Bitcoin Core observer, PSBT parsing, wallet signing, and settlement remain unimplemented. The Nostr verifier checks event authenticity, not BTC ownership or USD payment. GitHub Actions runs the Node.js and Rust checks on pushes and pull requests.
 
 ## Development stages
 

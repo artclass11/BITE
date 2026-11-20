@@ -1,0 +1,10 @@
+{
+  "name": "bite-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "BITE offline trade state-machine prototype; not a production exchange",
+  "scripts": {
+    "test": "node --test"
+  }
+}

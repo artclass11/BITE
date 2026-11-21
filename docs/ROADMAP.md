@@ -37,7 +37,10 @@ This is a gate-based roadmap, not a promised delivery schedule. A stage is compl
 - [x] Verify Nostr event ID/signature and bind order maker/timestamp (BITE event kind/tags and global replay rules remain pending).
 - [x] Persist local replay keys across restarts with SQLite (cross-device/global replay remains pending).
 - [x] Add a local Bitcoin Core regtest sandbox and CI smoke test; the test forces `regtest`, disables peer networking and exposes no RPC/P2P ports.
-- [ ] Integrate the BITE application with Bitcoin Core RPC for read-only transaction/block observation, chain checks and reorg handling.
+- [x] Add a read-only Rust Bitcoin Core RPC observer with cookie-file authentication, loopback-only endpoint validation and mandatory `chain=regtest` checks.
+- [x] Verify block hash/height/body/ancestry, transaction inclusion and active-chain confirmations against the current tip.
+- [x] Detect shallow regtest reorgs and report the common ancestor, disconnected blocks and replacement blocks; fail closed when the fork exceeds the retained window.
+- [ ] Add persistent chain cursor/checkpoint storage, crash-safe rescan/recovery and independent multi-node verification.
 - [ ] PSBT construction and strict validation.
 - [ ] Simulated two-party signing with disposable test keys.
 - [ ] Property and fuzz tests.
@@ -45,7 +48,7 @@ This is a gate-based roadmap, not a promised delivery schedule. A stage is compl
 
 **Exit gate:** tests prove no single application API can fabricate settlement or move user funds. The current regtest smoke test only proves isolated node startup and test-block generation; it does not satisfy the RPC/settlement exit gate.
 
-**Stage 2 progress note:** durable local replay and the isolated Bitcoin Core regtest smoke environment are implemented and pass CI, but Stage 2 is not complete. The BITE application's read-only RPC/chain observer, PSBT construction and strict validation, simulated two-party signing, and property/fuzz coverage still block its exit gate.
+**Stage 2 progress note:** durable local replay, the isolated Bitcoin Core regtest environment, and a read-only Rust observer with real regtest block/transaction/reorg tests are implemented and pass CI. Stage 2 is not complete: PSBT construction and strict intent validation, simulated two-party signing, persistent chain cursor/recovery, and property/fuzz coverage still block its exit gate.
 
 ## Stage 3 — Wallet and decentralized discovery
 

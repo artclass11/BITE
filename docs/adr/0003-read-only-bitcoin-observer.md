@@ -20,7 +20,7 @@ The previous Rust crate name, bitcoincore-rpc, has been archived. Stage 2 theref
 6. Transaction lookup requires an explicit containing block hash. It verifies the returned txid and block hash, rejects mempool/unconfirmed/inactive-chain results, confirms the transaction is present in the parsed block, and recomputes confirmations after checking that the block remains active.
 7. ChainTracker retains a bounded in-memory window of canonical block identities. It reports initialization, unchanged tip, extension or reorg (common ancestor, removed blocks, replacement blocks). It fails closed when no common ancestor exists inside the configured window.
 8. The regtest integration test uses a disposable node, confirms a block and transaction, invalidates a disposable tip via the test fixture's bitcoin-cli wrapper, mines a replacement fork and asserts that the observer detects the reorg.
-9. The test RPC port is forwarded to host loopback only. The container uses an internal Docker network, disables P2P listening/outbound peers/DNS discovery and publishes no P2P port. The RPC cookie is copied to a runner-owned mode-0600 temporary file for the host process; it is never printed.
+9. The Linux CI regtest container uses Docker host networking. RPC binds and allows only `127.0.0.1:18443`; no Docker port mapping is configured. P2P listening and outbound peers/DNS discovery are disabled. The RPC cookie is copied to a runner-owned mode-0600 temporary file for the host process; it is never printed.
 10. No RPC observation is, by itself, a multi-node consensus proof or an ownership proof. A single RPC server can lie, be compromised, be stale or be reorged after the observation.
 
 ## Explicit limitations

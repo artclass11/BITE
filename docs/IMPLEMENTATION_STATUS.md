@@ -21,16 +21,16 @@
 - Rust unit/integration tests for valid signed orders, tampering, maker mismatch, timestamp mismatch, duplicate/unknown fields, invalid amounts, expiry, oversized input, replay rejection, maker-scoped order uniqueness, expiry pruning and replay-guard capacity.
 - Bounded in-process replay guard plus a SQLite-backed durable replay store. The durable store persists event IDs and maker-scoped order IDs across restarts, uses unique database constraints and atomic IMMEDIATE transactions, prunes only expired entries, fixes capacity in versioned metadata, and fails closed on duplicates, capacity and storage errors.
 - Committed `Cargo.lock`; Rust CI runs `cargo test --locked --workspace`.
-- Isolated Bitcoin Core 32.1 regtest Compose sandbox and Rust observer integration. RPC is forwarded only to host loopback (127.0.0.1:18443) for the test process; no P2P port is published, and the Docker network is internal.
-- New `bite-bitcoin-observer` Rust crate using pinned `corepc-client` 0.19.0 async RPC with cookie-file authentication. It refuses non-regtest nodes and non-loopback endpoints, verifies chain-tip consistency, block hash/height/body/previous-block linkage, transaction inclusion and active-chain confirmations.
+- Isolated Bitcoin Core 32.1 regtest Compose sandbox and Rust observer integration. On the Linux CI runner, Docker host networking is used with Bitcoin RPC bound/allowed only at `127.0.0.1:18443`; P2P listening and outbound connections are disabled.
+- New `bite-bitcoin-observer` Rust crate using pinned `corepc-client` 0.18.0 async RPC with cookie-file authentication. It refuses non-regtest nodes and non-loopback endpoints, verifies chain-tip consistency, block hash/height/body/previous-block linkage, transaction inclusion and active-chain confirmations.
 - In-memory `ChainTracker` reports initialization, unchanged tips, extensions and reorgs with common ancestor, removed blocks and added blocks; it fails closed if the reorg exceeds the configured 1–2,016 block window.
 - End-to-end regtest integration test confirms a real block and transaction, then invalidates the disposable tip and mines a replacement fork to exercise reorg detection.
 - Exact rational quote-notional arithmetic; the prototype performs no floating-point monetary calculations and deliberately does not round settlement amounts.
 - BTC/USD price comparison using integer arithmetic.
 - Trade-state machine prototype with immutable aggregate transitions, state invariants, PSBT-hash binding, signature-policy milestones, confirmation thresholds, chain conflict handling, reorgs, refund-intent/transaction binding, refund finality and refund reorg handling.
 - Automated tests for BTC/USD order validation and trade-state transitions.
-- GitHub Actions runs 27 JavaScript tests and 24 Rust tests (9 unit + 15 integration), plus rustfmt and Clippy with warnings denied. Verified all-green run: [44785971036](https://github.com/artclass11/BITE/actions/runs/44785971036).
-- The same run passed the Bitcoin Core 32.1 regtest smoke test: `chain=regtest`, 101 blocks, no RPC/P2P ports published, followed by container/volume cleanup.
+- GitHub Actions run [44853627300](https://github.com/artclass11/BITE/actions/runs/44853627300) passed 27 JavaScript tests, 29 Rust unit/integration tests (5 observer + 9 protocol unit + 15 protocol integration), rustfmt and Clippy with warnings denied.
+- The same run passed the real Bitcoin Core 32.1 regtest observer integration: `chain=regtest`, block/transaction inclusion and confirmations verified, forced tip invalidation/replacement fork detected, and disposable container/data cleaned up. The explicit regtest integration test reported 1 passed.
 - CODEOWNERS file added; main-branch protection is not enabled yet and is tracked in GitHub issue #5.
 - Initial architecture, threat model, security policy, contribution rules, compliance release checklist, decision log and staged roadmap.
 

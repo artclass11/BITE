@@ -539,7 +539,11 @@ fn validate_loopback_rpc_url(url: &str) -> Result<(), ObserverError> {
         .or_else(|| url.strip_prefix("http://localhost:"))
         .or_else(|| url.strip_prefix("http://[::1]:"))
         .ok_or(ObserverError::InvalidRpcUrl)?;
-    if authority.contains('/') || authority.contains('@') || authority.contains('?') || authority.contains('#') {
+    if authority.contains('/')
+        || authority.contains('@')
+        || authority.contains('?')
+        || authority.contains('#')
+    {
         return Err(ObserverError::InvalidRpcUrl);
     }
     let port = authority
@@ -657,10 +661,7 @@ mod tests {
             } => {
                 assert_eq!(common_ancestor, ref_at(1, 'b'));
                 assert_eq!(removed, vec![ref_at(2, 'c'), ref_at(3, 'd')]);
-                assert_eq!(
-                    added,
-                    vec![ref_at(2, 'e'), ref_at(3, 'f'), ref_at(4, 'g')]
-                );
+                assert_eq!(added, vec![ref_at(2, 'e'), ref_at(3, 'f'), ref_at(4, 'g')]);
                 assert_eq!(tip.height, 4);
             }
             other => panic!("expected reorg, got {other:?}"),
@@ -692,9 +693,6 @@ mod tests {
         );
         let mut bad_tip = window(vec![ref_at(1, 'a'), ref_at(2, 'b')]);
         bad_tip.tip.hash = hash('c');
-        assert_eq!(
-            bad_tip.validate(),
-            Err(ObserverError::InvalidChainWindow)
-        );
+        assert_eq!(bad_tip.validate(), Err(ObserverError::InvalidChainWindow));
     }
 }

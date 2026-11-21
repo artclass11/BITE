@@ -1,5 +1,5 @@
 use bite_bitcoin_observer::{
-    BitcoinCoreObserver, ChainTracker, ChainUpdate, ObserverConfig, BlockRef,
+    BitcoinCoreObserver, BlockRef, ChainTracker, ChainUpdate, ObserverConfig,
 };
 use corepc_client::bitcoin::{BlockHash, Txid};
 use std::path::PathBuf;
@@ -10,17 +10,17 @@ use std::str::FromStr;
 #[ignore = "requires the isolated BITE Bitcoin Core regtest container"]
 async fn observes_blocks_transactions_confirmations_and_a_real_reorg() {
     let rpc_url = std::env::var("BITE_RPC_URL").expect("BITE_RPC_URL");
-    let cookie = PathBuf::from(std::env::var("BITE_RPC_COOKIE_FILE").expect("BITE_RPC_COOKIE_FILE"));
+    let cookie =
+        PathBuf::from(std::env::var("BITE_RPC_COOKIE_FILE").expect("BITE_RPC_COOKIE_FILE"));
     let cli = PathBuf::from(std::env::var("BITE_BITCOIN_CLI").expect("BITE_BITCOIN_CLI"));
     let address = std::env::var("BITE_REGTEST_ADDRESS").expect("BITE_REGTEST_ADDRESS");
     let block_height = std::env::var("BITE_TEST_BLOCK_HEIGHT")
         .expect("BITE_TEST_BLOCK_HEIGHT")
         .parse::<u64>()
         .expect("numeric block height");
-    let block_hash = BlockHash::from_str(
-        &std::env::var("BITE_TEST_BLOCK_HASH").expect("BITE_TEST_BLOCK_HASH"),
-    )
-    .expect("valid block hash");
+    let block_hash =
+        BlockHash::from_str(&std::env::var("BITE_TEST_BLOCK_HASH").expect("BITE_TEST_BLOCK_HASH"))
+            .expect("valid block hash");
     let txid = Txid::from_str(&std::env::var("BITE_TEST_TXID").expect("BITE_TEST_TXID"))
         .expect("valid txid");
 
@@ -32,7 +32,10 @@ async fn observes_blocks_transactions_confirmations_and_a_real_reorg() {
 
     let tip_before = observer.chain_tip().await.expect("initial chain tip");
     assert!(tip_before.height >= block_height);
-    let block = observer.observe_block(block_height).await.expect("observe block");
+    let block = observer
+        .observe_block(block_height)
+        .await
+        .expect("observe block");
     assert_eq!(block.hash, block_hash);
     assert!(block.transaction_ids.contains(&txid));
 
@@ -45,7 +48,10 @@ async fn observes_blocks_transactions_confirmations_and_a_real_reorg() {
 
     let mut tracker = ChainTracker::new(12).expect("tracker");
     assert!(matches!(
-        observer.sync_chain(&mut tracker).await.expect("initial sync"),
+        observer
+            .sync_chain(&mut tracker)
+            .await
+            .expect("initial sync"),
         ChainUpdate::Initialized { .. }
     ));
 
@@ -83,7 +89,10 @@ async fn observes_blocks_transactions_confirmations_and_a_real_reorg() {
         String::from_utf8_lossy(&mine.stderr)
     );
 
-    let update = observer.sync_chain(&mut tracker).await.expect("detect reorg");
+    let update = observer
+        .sync_chain(&mut tracker)
+        .await
+        .expect("detect reorg");
     match update {
         ChainUpdate::Reorganized {
             common_ancestor,

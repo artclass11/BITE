@@ -1,0 +1,40 @@
+name: Temporary Stage 2 observer dependency verification
+
+on:
+  push:
+    branches:
+      - feat/rust-protocol-core
+
+permissions:
+  contents: read
+
+jobs:
+  observer-build:
+    name: Resolve, compile and lint observer
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Generate Cargo.lock
+        run: cargo generate-lockfile
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run all Rust workspace tests
+        run: cargo test --workspace
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Export generated lockfile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bite-observer-cargo-lock
+          path: Cargo.lock
+          if-no-files-found: error
+          retention-days: 3

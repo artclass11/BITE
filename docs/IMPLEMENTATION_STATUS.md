@@ -24,7 +24,9 @@
 - Isolated Bitcoin Core 32.1 regtest Compose sandbox and Rust observer integration. On the Linux CI runner, Docker host networking is used with Bitcoin RPC bound/allowed only at `127.0.0.1:18443`; P2P listening and outbound connections are disabled.
 - New `bite-bitcoin-observer` Rust crate using pinned `corepc-client` 0.18.0 async RPC with cookie-file authentication. It refuses non-regtest nodes and non-loopback endpoints, verifies chain-tip consistency, block hash/height/body/previous-block linkage, transaction inclusion and active-chain confirmations.
 - In-memory `ChainTracker` reports initialization, unchanged tips, extensions and reorgs with common ancestor, removed blocks and added blocks; it fails closed if the reorg exceeds the configured 1–2,016 block window.
+- New `bite-psbt` crate: 100-KiB-bounded PSBT v0 parsing; exact ordered input/output intent checks; native P2WSH 2-of-2 compressed-key script policy; declared witness-UTXO and fee-range checks; strict ECDSA SIGHASH_ALL verification; rejects unknown/proprietary PSBT fields, unsupported sighash types, Taproot and finalized-input metadata.
 - End-to-end regtest integration test confirms a real block and transaction, then invalidates the disposable tip and mines a replacement fork to exercise reorg detection.
+- PSBT unit tests cover bounded parsing, transaction substitution, output value changes, prevout metadata mismatch, fee-cap violations, non-ALL sighash, finalized-input metadata, unexpected signers, forged signatures, and a two-independent-signer partial-signature combine/final-witness simulation.
 - Exact rational quote-notional arithmetic; the prototype performs no floating-point monetary calculations and deliberately does not round settlement amounts.
 - BTC/USD price comparison using integer arithmetic.
 - Trade-state machine prototype with immutable aggregate transitions, state invariants, PSBT-hash binding, signature-policy milestones, confirmation thresholds, chain conflict handling, reorgs, refund-intent/transaction binding, refund finality and refund reorg handling.
@@ -39,7 +41,9 @@
 - Production frontend, backend API, accounts, live order book or relay service.
 - Approved BITE-specific Nostr event kind/tag schema, cross-device/global replay protection, cancellation/partial-fill semantics, anti-spam controls, and multi-relay implementation. SQLite replay protection is local to one shared database file and is not network-wide.
 - Persistent chain cursor/checkpoint storage, crash-safe rescan/recovery, independent multi-node chain verification and a production node trust policy. The current reorg cursor is in-memory and must be rebuilt from a fresh chain window after restart.
-- PSBT parser, transaction construction, fee policy, wallet integration or hardware-signer flow.
+- Chain-verified prevout existence/unspentness and value/script confirmation for each PSBT input; independent Bitcoin Script-engine execution and a Bitcoin Core regtest spend-acceptance test.
+- Fee-rate estimation, dust/relay policy, coin selection, change detection, locktime/refund and replacement policy.
+- Production wallet or hardware-signer integration, user transaction review UI, transaction finalization/broadcast, and any real-funds path.
 - USD payment integrations, fiat escrow, arbitration, bank verification or refunds.
 - Mainnet/testnet deployment, monitoring, backups, incident-response drills or independent security audits.
 - Jurisdiction-specific legal/compliance approval.
@@ -57,8 +61,12 @@
 3. Compare direct settlement, cooperative Bitcoin contracts and escrow with a written dispute/recovery policy.
 4. Implement multi-relay order discovery with independent relay failure, censorship and spam handling; the current Rust crate only verifies supplied signed events.
 5. Add persistent chain cursor/checkpoint storage, crash-safe rescan/recovery and independent multi-node verification on top of the tested read-only observer.
-6. Implement PSBT parsing and strict comparison against agreed trade intent, followed by user-controlled wallet signing.
+6. Extend the PSBT prototype with chain-verified unspent prevouts, script-engine validation and a complete Bitcoin Core regtest spend-acceptance test before designing user-controlled wallet/hardware signing.
 7. Run regtest adversarial simulations and independent review before any public test deployment.
+
+## PSBT intent-validation prototype
+
+The new `bite-psbt` crate is limited to PSBT v0 and the native P2WSH 2-of-2 ECDSA fixture described in ADR 0004 and `docs/protocol/PSBT_INTENT_V1.md`. Its tests verify partial signatures from two separate deterministic keys and reject intent substitution and unsupported PSBT policy fields. `witness_utxo` data is not an independent chain proof; prevout existence/unspentness, Bitcoin Script execution and Core acceptance of a completed spend remain unverified.
 
 ## Verified Stage 2 observer CI
 

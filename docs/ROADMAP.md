@@ -41,14 +41,16 @@ This is a gate-based roadmap, not a promised delivery schedule. A stage is compl
 - [x] Verify block hash/height/body/ancestry, transaction inclusion and active-chain confirmations against the current tip.
 - [x] Detect shallow regtest reorgs and report the common ancestor, disconnected blocks and replacement blocks; fail closed when the fork exceeds the retained window.
 - [ ] Add persistent chain cursor/checkpoint storage, crash-safe rescan/recovery and independent multi-node verification.
-- [ ] PSBT construction and strict validation.
-- [ ] Simulated two-party signing with disposable test keys.
+- [x] Add bounded PSBT v0 parsing and strict exact-intent checks for native P2WSH 2-of-2 inputs, ordered outputs and an absolute fee ceiling (fixture only).
+- [x] Simulate independent two-party ECDSA SIGHASH_ALL signing, PSBT combination and final-witness assembly using deterministic disposable test keys.
+- [ ] Verify prevout existence/unspentness and amount/script against chain data; run an independent Bitcoin Script engine and Bitcoin Core regtest spend-acceptance test.
+- [ ] Define fee-rate, dust/relay, coin-selection, change, locktime/refund and replacement policy.
 - [ ] Property and fuzz tests.
 - [ ] No mainnet configuration in the default build.
 
 **Exit gate:** tests prove no single application API can fabricate settlement or move user funds. The current observer verifies one regtest node's active-chain data and shallow reorgs; PSBT intent validation and controlled signing/settlement safety are not yet implemented, so the exit gate remains open.
 
-**Stage 2 progress note:** durable local replay, the isolated Bitcoin Core regtest environment, and a read-only Rust observer with real regtest block/transaction/reorg tests are implemented and pass CI. Stage 2 is not complete: PSBT construction and strict intent validation, simulated two-party signing, persistent chain cursor/recovery, and property/fuzz coverage still block its exit gate.
+**Stage 2 progress note:** durable local replay, the isolated Bitcoin Core regtest environment, and a read-only Rust observer with real regtest block/transaction/reorg tests are implemented and pass CI. Stage 2 is not complete: chain-verified prevouts, script-engine validation, a Bitcoin Core regtest spend-acceptance test, persistent chain cursor/recovery, independent multi-node verification, fee/dust policy and property/fuzz coverage still block its exit gate.
 
 ## Stage 3 — Wallet and decentralized discovery
 

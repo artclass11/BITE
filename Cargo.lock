@@ -162,6 +162,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "bite-psbt"
+version = "0.1.0"
+dependencies = [
+ "bitcoin",
+]
+
+[[package]]
 name = "bite-protocol"
 version = "0.1.0"
 dependencies = [

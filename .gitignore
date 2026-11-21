@@ -11,6 +11,7 @@ secrets/
 credentials/
 
 # Local databases and logs
+.bite-observer-test/
 .bite-regtest-data/
 *.sqlite
 *.sqlite3

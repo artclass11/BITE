@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-ROOT_DIR="$(cd -- "$(dirname -- "\${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="$ROOT_DIR/contrib/regtest/compose.yaml"
 PROJECT_NAME="bite-stage2-regtest"
 WALLET_NAME="bite-stage2-miner"
-BITE_REGTEST_DATA_DIR="\${BITE_REGTEST_DATA_DIR:-$ROOT_DIR/.bite-regtest-data}"
+BITE_REGTEST_DATA_DIR="${BITE_REGTEST_DATA_DIR:-$ROOT_DIR/.bite-regtest-data}"
+BITE_OBSERVER_TMP_DIR="${BITE_OBSERVER_TMP_DIR:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/bite-observer-test}"
 BITE_RPC_URL="http://127.0.0.1:18443"
 export BITE_REGTEST_DATA_DIR
 export BITE_PROJECT_NAME="$PROJECT_NAME"
@@ -28,8 +29,8 @@ if ! command -v cargo >/dev/null 2>&1; then
   exit 127
 fi
 
-mkdir -p "$BITE_REGTEST_DATA_DIR"
-chmod 700 "$BITE_REGTEST_DATA_DIR"
+mkdir -p "$BITE_REGTEST_DATA_DIR" "$BITE_OBSERVER_TMP_DIR"
+chmod 700 "$BITE_REGTEST_DATA_DIR" "$BITE_OBSERVER_TMP_DIR"
 
 compose() {
   docker compose --project-name "$PROJECT_NAME" --file "$COMPOSE_FILE" "$@"
@@ -118,13 +119,13 @@ fi
 # Copy only the ephemeral cookie into a runner-owned mode-0600 file.
 # The cookie itself is never printed to logs.
 cookie_contents="$(compose exec --no-TTY bitcoind sh -c 'cat /home/bitcoin/.bitcoin/regtest/.cookie')"
-observer_cookie="$BITE_REGTEST_DATA_DIR/observer.cookie"
+observer_cookie="$BITE_OBSERVER_TMP_DIR/observer.cookie"
 (umask 077; printf '%s' "$cookie_contents" > "$observer_cookie")
 unset cookie_contents
 
 # This test-only wrapper mutates the disposable regtest node to create a fork.
 # The observer library itself exposes read-only methods only.
-cli_wrapper="$BITE_REGTEST_DATA_DIR/bite-bitcoin-cli"
+cli_wrapper="$BITE_OBSERVER_TMP_DIR/bite-bitcoin-cli"
 cat > "$cli_wrapper" <<'CLI'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -146,6 +147,7 @@ cargo test --locked -p bite-bitcoin-observer --test regtest_rpc -- --ignored --n
 
 echo "BITE read-only observer integration passed. chain=regtest blocks=$final_blocks"
 echo "RPC is forwarded only to 127.0.0.1:18443; no RPC interface is reachable from the LAN or Internet."
-echo "The regtest data is retained in: $BITE_REGTEST_DATA_DIR"
+echo "The disposable regtest data is in: $BITE_REGTEST_DATA_DIR"
+echo "The private observer test files are in: $BITE_OBSERVER_TMP_DIR"
 echo "Stop the container with: docker compose --project-name $PROJECT_NAME --file $COMPOSE_FILE down"
-echo "Remove disposable test data with: docker compose --project-name $PROJECT_NAME --file $COMPOSE_FILE down --volumes && rm -rf '$BITE_REGTEST_DATA_DIR'"
+echo "Remove disposable test data with: docker compose --project-name $PROJECT_NAME --file $COMPOSE_FILE down --volumes && rm -rf '$BITE_REGTEST_DATA_DIR' '$BITE_OBSERVER_TMP_DIR'"

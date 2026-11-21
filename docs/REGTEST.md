@@ -1,50 +1,51 @@
-# BITE Stage 2 — Bitcoin Core regtest sandbox
+# BITE Stage 2 — Bitcoin Core regtest and Rust observer
 
-This sandbox is for **offline development and CI smoke tests only**. It starts Bitcoin Core 32.1 on a private regression-test chain, creates a disposable local test wallet, mines enough blocks for coinbase maturity, and verifies the active chain.
+This harness runs Bitcoin Core 32.1 on a disposable regression-test chain and exercises the BITE Rust observer against the real node.
 
 ## Requirements
 
-- Docker Engine with Docker Compose v2
-- Bash
-- A machine capable of running the pinned bitcoin/bitcoin:32.1 test image
+- Docker Engine and Docker Compose v2
+- Bash, jq and Rust/Cargo
+- A machine able to run the pinned bitcoin/bitcoin:32.1 testing image
 
-The bitcoin/bitcoin Docker image is explicitly an **unofficial image intended for testing**, not an image endorsed by the Bitcoin Core project. It must not be used as a production binary source. For non-testing purposes, obtain Bitcoin Core from the official release page and verify the downloaded binaries as instructed by the Bitcoin Core project.
+The bitcoin/bitcoin Docker image is an unofficial testing image, not a production binary source. For non-testing purposes, obtain Bitcoin Core from the official release page and verify the binaries as instructed by the Bitcoin Core project.
 
 ## Run
 
-From the repository root, run:
+From the repository root:
 
     ./scripts/regtest-smoke.sh
 
-The script starts the isolated node, verifies that Bitcoin Core reports chain=regtest, creates or loads the bite-stage2-miner test wallet, obtains a regtest-only bcrt1 address, and mines until the chain has at least 101 blocks.
+The script creates a disposable test wallet, mines to at least height 103, reads a block and transaction identifier, then runs the Rust observer integration test. The Rust test verifies the active network, chain tip, block body and ancestry, transaction inclusion and confirmations. It then invalidates the current tip and mines a replacement fork so the observer must report the disconnected and replacement blocks.
 
-To stop the container but keep local test data:
+The RPC port is forwarded only to host loopback at 127.0.0.1:18443 for this local integration test. It is not bound to a LAN/public interface. Bitcoin peer listening and outbound peer connections, DNS seeding and discovery remain disabled; no P2P port is published. The Docker network is internal.
+
+The RPC server inside the container binds to its container interfaces so the Docker port forward can reach it. Cookie authentication is mandatory. The script copies the ephemeral cookie to a runner-owned mode-0600 file for the host Rust process and never prints the cookie.
+
+## Clean up
+
+Stop the node but keep the local test data:
 
     docker compose --project-name bite-stage2-regtest --file contrib/regtest/compose.yaml down
 
-To delete the disposable chain and test wallet explicitly:
+Remove the disposable chain, wallet, cookie and observer test files:
 
     docker compose --project-name bite-stage2-regtest --file contrib/regtest/compose.yaml down --volumes
+    rm -rf .bite-regtest-data
 
-## Isolation and trust boundaries
+In CI, the entire temporary data directory is removed in an unconditional cleanup step.
 
-- The node is forced to -regtest=1; the script independently checks the reported chain before mining.
-- Peer listening, outbound peer connections, DNS seeding and discovery are disabled. The Docker network is internal and no P2P port is published.
-- The Compose network is marked internal.
-- No RPC or P2P port is published to the host.
-- RPC is used only by bitcoin-cli inside the same container, using Bitcoin Core's local cookie authentication.
-- The test wallet and mined coins have no value and must never be used as real funds.
-- The Docker image is pinned to a version tag, not a cryptographically verified image digest. It is only a test fixture; do not rely on it for production.
-- This smoke test proves only that an isolated regtest node can start and produce regtest blocks. It does **not** implement BITE transaction construction, PSBT validation, counterparty signing, BTC ownership proofs, matching or settlement.
+## Observer guarantees and boundaries
 
-Bitcoin Core warns that RPC credentials grant significant control over the node and its filesystem and that RPC must not be exposed to the public Internet. This sandbox avoids publishing the RPC port at all.
+- The Rust crate accepts only HTTP loopback RPC URLs and authenticates with Bitcoin Core's cookie file.
+- It checks chain identity on each chain query and refuses any chain other than regtest.
+- The chain tip hash is cross-checked using getblockhash.
+- Block body hash, height, previous-block ancestry and transaction IDs are checked against RPC metadata.
+- Transaction lookup requires a specific containing block hash; it does not rely on txindex and does not treat mempool presence as settlement.
+- Confirmations are recomputed from the current tip after checking the block is still canonical.
+- The in-memory chain tracker reports the common ancestor, removed blocks and replacement blocks for reorgs within its configured window. It fails closed when no common ancestor is found inside that window.
+- The tracker is currently in-memory. A process restart requires a fresh chain window; persistent cursor storage, crash-safe rescan and external node trust policy remain future work.
+- The observer crate exposes no wallet, signing, mining, broadcast or mutating RPC methods. The test fixture alone uses bitcoin-cli to invalidate a disposable regtest block and mine a replacement fork.
+- This integration proves connectivity to one local regtest node. It is not an independent multi-node consensus proof, a production chain-monitoring service, BTC ownership proof or trade settlement.
 
-## Next integration gates
-
-1. Add a read-only Rust RPC adapter using explicit regtest endpoint and chain checks.
-2. Verify block hashes, transaction inclusion, confirmations and reorg rollback from the node.
-3. Add PSBT parsing and compare every input/output/fee against a reviewed trade intent.
-4. Add simulated two-party signing with disposable regtest-only keys.
-5. Add adversarial reorg, conflicting-spend, fee-substitution and PSBT-mutation tests.
-
-None of these gates enables mainnet. Mainnet remains a separate release decision after independent audits and jurisdiction-specific legal review.
+Bitcoin Core RPC credentials grant substantial control over the node. Keep RPC access local and protected; do not expose it to the public Internet. BITE mainnet support remains disabled.

@@ -50,6 +50,7 @@ jobs:
     timeout-minutes: 20
     env:
       BITE_REGTEST_DATA_DIR: ${{ runner.temp }}/bite-regtest-data
+      BITE_OBSERVER_TMP_DIR: ${{ runner.temp }}/bite-observer-test
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -61,4 +62,4 @@ jobs:
         if: always()
         run: |
           docker compose --project-name bite-stage2-regtest --file contrib/regtest/compose.yaml down --volumes
-          rm -rf "$BITE_REGTEST_DATA_DIR"
+          rm -rf "$BITE_REGTEST_DATA_DIR" "$BITE_OBSERVER_TMP_DIR"

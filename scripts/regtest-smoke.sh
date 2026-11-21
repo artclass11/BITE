@@ -146,7 +146,7 @@ BITE_TEST_TXID="$test_txid" \
 cargo test --locked -p bite-bitcoin-observer --test regtest_rpc -- --ignored --nocapture
 
 echo "BITE read-only observer integration passed. chain=regtest blocks=$final_blocks"
-echo "RPC is forwarded only to 127.0.0.1:18443; no RPC interface is reachable from the LAN or Internet."
+echo "Bitcoin Core RPC is bound to 127.0.0.1:18443 only; no RPC interface is reachable from the LAN or Internet."
 echo "The disposable regtest data is in: $BITE_REGTEST_DATA_DIR"
 echo "The private observer test files are in: $BITE_OBSERVER_TMP_DIR"
 echo "Stop the container with: docker compose --project-name $PROJECT_NAME --file $COMPOSE_FILE down"

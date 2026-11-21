@@ -36,7 +36,7 @@ This is a gate-based roadmap, not a promised delivery schedule. A stage is compl
 - [x] Deterministic BTC/USD order validation with bounded integer parsing.
 - [x] Verify Nostr event ID/signature and bind order maker/timestamp (BITE event kind/tags and global replay rules remain pending).
 - [x] Persist local replay keys across restarts with SQLite (cross-device/global replay remains pending).
-- [x] Add a local Bitcoin Core regtest sandbox and CI smoke test; the test forces `regtest`, disables peer networking and exposes no RPC/P2P ports.
+- [x] Add a local Bitcoin Core regtest sandbox and CI observer integration; the test forces `regtest`, disables P2P listening/outbound peers, and restricts RPC to host loopback on the Linux CI runner.
 - [x] Add a read-only Rust Bitcoin Core RPC observer with cookie-file authentication, loopback-only endpoint validation and mandatory `chain=regtest` checks.
 - [x] Verify block hash/height/body/ancestry, transaction inclusion and active-chain confirmations against the current tip.
 - [x] Detect shallow regtest reorgs and report the common ancestor, disconnected blocks and replacement blocks; fail closed when the fork exceeds the retained window.
@@ -46,7 +46,7 @@ This is a gate-based roadmap, not a promised delivery schedule. A stage is compl
 - [ ] Property and fuzz tests.
 - [ ] No mainnet configuration in the default build.
 
-**Exit gate:** tests prove no single application API can fabricate settlement or move user funds. The current regtest smoke test only proves isolated node startup and test-block generation; it does not satisfy the RPC/settlement exit gate.
+**Exit gate:** tests prove no single application API can fabricate settlement or move user funds. The current observer verifies one regtest node's active-chain data and shallow reorgs; PSBT intent validation and controlled signing/settlement safety are not yet implemented, so the exit gate remains open.
 
 **Stage 2 progress note:** durable local replay, the isolated Bitcoin Core regtest environment, and a read-only Rust observer with real regtest block/transaction/reorg tests are implemented and pass CI. Stage 2 is not complete: PSBT construction and strict intent validation, simulated two-party signing, persistent chain cursor/recovery, and property/fuzz coverage still block its exit gate.
 

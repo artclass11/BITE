@@ -649,7 +649,7 @@ mod tests {
                 ref_at(1, 'b'),
                 ref_at(2, 'e'),
                 ref_at(3, 'f'),
-                ref_at(4, 'g'),
+                ref_at(4, '0'),
             ]))
             .unwrap();
         match update {
@@ -678,7 +678,7 @@ mod tests {
                 ref_at(12, 'c'),
             ]))
             .unwrap();
-        let incoming = window(vec![ref_at(11, 'x'), ref_at(12, 'y'), ref_at(13, 'z')]);
+        let incoming = window(vec![ref_at(11, '4'), ref_at(12, '5'), ref_at(13, '6')]);
         assert_eq!(
             tracker.apply(incoming),
             Err(ObserverError::ReorgBeyondTrackedWindow)

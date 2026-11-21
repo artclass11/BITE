@@ -1,0 +1,9 @@
+[package]
+name = "bite-psbt"
+version = "0.1.0"
+edition = "2021"
+description = "Strict BTC/USD PSBT intent checks for BITE's regtest prototype"
+license = "MIT"
+
+[dependencies]
+bitcoin = "=0.32.102"

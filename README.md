@@ -51,7 +51,29 @@ Run the tests with Node.js 22 or later:
 npm test
 ```
 
-The prototypes do **not** verify Nostr signatures, parse PSBTs, connect to relays or Bitcoin Core, determine USD payment status, manage keys, or broadcast transactions. Those integrations must be built and reviewed separately. GitHub Actions runs the same state-machine test suite on pushes and pull requests.
+The JavaScript prototypes remain useful for fast state-machine and market-domain tests. The Rust workspace adds `crates/bite-protocol`, which:
+
+- strictly parses the outer Nostr event and BTC/USD order payload (unknown/duplicate fields fail closed);
+- verifies the Nostr event ID and Schnorr signature with the pinned `nostr = 0.45.7` library;
+- binds the order's `makerPubkey` and `createdAt` to the verified event author and timestamp;
+- enforces size limits, bounded integer parsing, BTC supply limits, order expiry and exact integer-rational quote arithmetic;
+- provides a bounded in-process replay guard and a SQLite-backed durable replay store for duplicate event IDs and `(makerPubkey, orderId)` pairs, with expiry pruning, atomic insertion, and fail-closed capacity handling.
+
+Run both test suites with Node.js 22 and a stable Rust toolchain:
+
+```sh
+npm test
+cargo fmt --all -- --check
+cargo test --locked --workspace
+```
+
+The separate `crates/bite-bitcoin-observer` workspace crate uses pinned `corepc-client = 0.18.0` with cookie-file authentication. It accepts HTTP loopback RPC endpoints only, requires `chain=regtest`, verifies block hashes/heights/ancestry and transaction inclusion, recomputes confirmations from the current tip, and tracks shallow reorgs with removed/added block lists. Its API is read-only. The CI regtest integration test queries a real block and transaction, invalidates a disposable tip, mines a replacement fork, and verifies reorg detection.
+
+The `crates/bite-psbt` crate adds a 100-KiB-bounded PSBT v0 parser and exact intent comparison for a narrow native P2WSH 2-of-2 multisig fixture. It checks ordered outpoints and outputs, declared witness UTXOs, the expected witness script, an absolute fee ceiling, and ECDSA SIGHASH_ALL partial signatures. Tests combine signatures from two separate deterministic fixture keys. This does not provide a chain-verified UTXO check, Bitcoin Script validation, wallet integration, broadcast or settlement. PSBT itself does not establish the Bitcoin network; this code is limited to the documented regtest prototype.
+
+This is still a protocol-core milestone, not a deployed exchange. The BITE order event kind/tags, cross-device/global replay rules, cancellation, partial fills, multi-relay network, persistent chain cursor/recovery, chain-verified UTXO checks, Bitcoin Script execution verification, wallet/hardware signer integration, broadcast, and settlement remain unimplemented. The in-memory replay guard is process-local. The SQLite replay store survives restarts and coordinates processes that share the same local database file, but it is not a distributed database and does not synchronize separate devices or clients. Restore from an old database backup can roll local replay history backward. The Nostr verifier checks event authenticity, not BTC ownership or USD payment.
+
+An isolated Bitcoin Core regtest harness and read-only observer integration are provided in [docs/REGTEST.md](docs/REGTEST.md). The Linux test harness uses Docker host networking with RPC bound only to `127.0.0.1:18443`, disables peer listening/outbound connections, and exposes no P2P endpoint. It mines disposable test blocks and runs real block, transaction-confirmation and forced-reorg checks. This is a single-node test, not independent multi-node consensus or settlement verification. GitHub Actions runs JavaScript, Rust formatting/tests, Clippy and this regtest integration using the committed `Cargo.lock`.
 
 ## Development stages
 
@@ -62,7 +84,7 @@ The prototypes do **not** verify Nostr signatures, parse PSBTs, connect to relay
 5. **Limited public test:** testnet/regtest only, public bug bounty or coordinated disclosure process, and no real funds.
 6. **Mainnet decision:** only after legal, security, operational, and independent audit gates are passed.
 
-The BTC/USD order payload contract is documented in [docs/protocol/BTC_USD_ORDER_V1.md](docs/protocol/BTC_USD_ORDER_V1.md). It is a prototype payload contract only; the signed Nostr envelope and cryptographic verification remain pending.
+The BTC/USD order payload contract and current Rust verifier/replay-store boundary are documented in [docs/protocol/BTC_USD_ORDER_V1.md](docs/protocol/BTC_USD_ORDER_V1.md) and [ADR 0002](docs/adr/0002-durable-replay-store.md). The read-only Bitcoin Core observer and its trust boundaries are documented in [docs/adr/0003-read-only-bitcoin-observer.md](docs/adr/0003-read-only-bitcoin-observer.md) and [docs/REGTEST.md](docs/REGTEST.md). The BITE-specific event kind, tags and cross-device replay protocol remain pending.
 
 ## Security status
 

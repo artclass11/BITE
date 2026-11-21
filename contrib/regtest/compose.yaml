@@ -1,0 +1,27 @@
+services:
+  bitcoind:
+    image: bitcoin/bitcoin:32.1
+    init: true
+    network_mode: host
+    command:
+      - -printtoconsole
+      - -regtest=1
+      - -server=1
+      - -listen=0
+      - -connect=0
+      - -dnsseed=0
+      - -discover=0
+      - -txindex=1
+      - -fallbackfee=0.0002
+      - -rpcbind=127.0.0.1
+      - -rpcallowip=127.0.0.1
+      - -rpcport=18443
+    volumes:
+      - ${BITE_REGTEST_DATA_DIR:?Set BITE_REGTEST_DATA_DIR to a private host directory}:/home/bitcoin/.bitcoin
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+

@@ -1,0 +1,3 @@
+[workspace]
+members = ["crates/bite-protocol", "crates/bite-bitcoin-observer", "crates/bite-psbt"]
+resolver = "2"

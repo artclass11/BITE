@@ -8,6 +8,26 @@ permissions:
   contents: read
 
 jobs:
+
+  rust-protocol-tests:
+    name: Rust protocol tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Run protocol tests
+        run: cargo test --locked --workspace
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
   state-machine-tests:
     name: State-machine tests
     runs-on: ubuntu-latest
@@ -23,3 +43,24 @@ jobs:
           node-version: 22
       - name: Run tests
         run: npm test
+
+  bitcoin-regtest-smoke:
+    name: Bitcoin Core regtest observer integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Set up private regtest paths
+        run: |
+          echo "BITE_REGTEST_DATA_DIR=$RUNNER_TEMP/bite-regtest-data" >> "$GITHUB_ENV"
+          echo "BITE_OBSERVER_TMP_DIR=$RUNNER_TEMP/bite-observer-test" >> "$GITHUB_ENV"
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Start isolated regtest node and mine test blocks
+        run: bash scripts/regtest-smoke.sh
+      - name: Remove disposable regtest container and data
+        if: always()
+        run: |
+          docker compose --project-name bite-stage2-regtest --file contrib/regtest/compose.yaml down --volumes
+          sudo rm -rf "$BITE_REGTEST_DATA_DIR" "$BITE_OBSERVER_TMP_DIR"

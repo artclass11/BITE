@@ -48,10 +48,11 @@ jobs:
     name: Bitcoin Core regtest observer integration
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      BITE_REGTEST_DATA_DIR: ${{ runner.temp }}/bite-regtest-data
-      BITE_OBSERVER_TMP_DIR: ${{ runner.temp }}/bite-observer-test
     steps:
+      - name: Set up private regtest paths
+        run: |
+          echo "BITE_REGTEST_DATA_DIR=$RUNNER_TEMP/bite-regtest-data" >> "$GITHUB_ENV"
+          echo "BITE_OBSERVER_TMP_DIR=$RUNNER_TEMP/bite-observer-test" >> "$GITHUB_ENV"
       - name: Check out repository
         uses: actions/checkout@v4
         with:

@@ -18,7 +18,7 @@ From the repository root:
 
 The script creates a disposable test wallet, mines to at least height 103, reads a block and transaction identifier, then runs the Rust observer integration test. The Rust test verifies the active network, chain tip, block body and ancestry, transaction inclusion and confirmations. It then invalidates the current tip and mines a replacement fork so the observer must report the disconnected and replacement blocks.
 
-The RPC port is forwarded only to host loopback at 127.0.0.1:18443 for this local integration test. It is not bound to a LAN/public interface. Bitcoin peer listening and outbound peer connections, DNS seeding and discovery remain disabled; no P2P port is published. The Docker network is internal.
+The regtest container uses Docker host networking on Linux so the host Rust process can reach RPC directly on 127.0.0.1:18443. Bitcoin Core itself binds RPC only to 127.0.0.1 and allows only 127.0.0.1. No port-forward rule is used. Bitcoin peer listening and outbound peer connections, DNS seeding and discovery remain disabled, so the daemon is not offering a P2P endpoint.
 
 The RPC server inside the container binds to its container interfaces so the Docker port forward can reach it. Cookie authentication is mandatory. The script copies the ephemeral cookie to a runner-owned mode-0600 file for the host Rust process and never prints the cookie.
 
@@ -33,7 +33,7 @@ Remove the disposable chain, wallet, cookie and observer test files:
     docker compose --project-name bite-stage2-regtest --file contrib/regtest/compose.yaml down --volumes
     rm -rf .bite-regtest-data /tmp/bite-observer-test
 
-In CI, the entire temporary data directory is removed in an unconditional cleanup step.
+In CI, the entire temporary data directory is removed in an unconditional cleanup step using runner sudo, because the container entrypoint may chown its bind-mounted datadir to the bitcoin user.
 
 ## Observer guarantees and boundaries
 

@@ -661,7 +661,7 @@ mod tests {
             } => {
                 assert_eq!(common_ancestor, ref_at(1, 'b'));
                 assert_eq!(removed, vec![ref_at(2, 'c'), ref_at(3, 'd')]);
-                assert_eq!(added, vec![ref_at(2, 'e'), ref_at(3, 'f'), ref_at(4, 'g')]);
+                assert_eq!(added, vec![ref_at(2, 'e'), ref_at(3, 'f'), ref_at(4, '0')]);
                 assert_eq!(tip.height, 4);
             }
             other => panic!("expected reorg, got {other:?}"),

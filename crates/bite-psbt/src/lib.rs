@@ -10,7 +10,6 @@
 
 use bitcoin::{
     absolute::LockTime,
-    ecdsa,
     opcodes::all::OP_CHECKMULTISIG,
     psbt::Psbt,
     script::Builder,
@@ -345,7 +344,6 @@ mod tests {
     use bitcoin::{
         ecdsa,
         hashes::Hash,
-        opcodes::all::OP_TRUE,
         psbt::PsbtSighashType,
         secp256k1::{PublicKey as SecpPublicKey, SecretKey},
         transaction::Version,
@@ -370,7 +368,7 @@ mod tests {
         let witness_script = expected_2of2_witness_script(&signers).expect("2-of-2 script");
         let prevout_script = ScriptBuf::new_p2wsh(&witness_script.wscript_hash());
         let outpoint = OutPoint::new(Txid::from_byte_array([42u8; 32]), 0);
-        let output_script = Builder::new().push_opcode(OP_TRUE).into_script();
+        let output_script = Builder::new().push_int(1).into_script();
 
         let unsigned_tx = bitcoin::Transaction {
             version: Version::TWO,

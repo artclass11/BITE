@@ -12,7 +12,7 @@ The previous Rust crate name, bitcoincore-rpc, has been archived. Stage 2 theref
 
 ## Decision
 
-1. Add a separate Rust workspace crate, bite-bitcoin-observer, using corepc-client 0.19.0.
+1. Add a separate Rust workspace crate, bite-bitcoin-observer, using corepc-client 0.18.0.
 2. The public crate API is read-only. It exposes chain tip, bounded canonical chain window, block observation, transaction-in-block observation and a shallow reorg tracker. It does not expose wallet, signing, mining, invalidation, transaction broadcast or other mutating RPC operations.
 3. Connect only through an HTTP loopback endpoint and Bitcoin Core's cookie file. Never embed RPC user/password values in URLs or log cookie content.
 4. Require the RPC node's getblockchaininfo response to say chain=regtest. Recheck the active-chain tip hash with getblockhash. The current implementation is not a mainnet-capable observer.

@@ -325,9 +325,7 @@ pub fn validate_regtest_psbt(
     })
 }
 
-fn expected_2of2_witness_script(
-    signers: &[PublicKey; 2],
-) -> Result<ScriptBuf, PsbtPolicyError> {
+fn expected_2of2_witness_script(signers: &[PublicKey; 2]) -> Result<ScriptBuf, PsbtPolicyError> {
     if signers[0] == signers[1] || !signers[0].compressed || !signers[1].compressed {
         return Err(PsbtPolicyError::InvalidIntent);
     }
@@ -366,10 +364,8 @@ mod tests {
         let secp = Secp256k1::new();
         let maker_secret = SecretKey::from_slice(&[1u8; 32]).expect("fixture key");
         let taker_secret = SecretKey::from_slice(&[2u8; 32]).expect("fixture key");
-        let maker_key =
-            PublicKey::new(SecpPublicKey::from_secret_key(&secp, &maker_secret));
-        let taker_key =
-            PublicKey::new(SecpPublicKey::from_secret_key(&secp, &taker_secret));
+        let maker_key = PublicKey::new(SecpPublicKey::from_secret_key(&secp, &maker_secret));
+        let taker_key = PublicKey::new(SecpPublicKey::from_secret_key(&secp, &taker_secret));
         let signers = [maker_key, taker_key];
         let witness_script = expected_2of2_witness_script(&signers).expect("2-of-2 script");
         let prevout_script = ScriptBuf::new_p2wsh(&witness_script.wscript_hash());
@@ -428,11 +424,9 @@ mod tests {
         let mut signed = original.clone();
         let tx = signed.unsigned_tx.clone();
         let mut cache = SighashCache::new(tx);
-        let (message, sighash_type) =
-            signed.sighash_ecdsa(0, &mut cache).expect("PSBT sighash");
+        let (message, sighash_type) = signed.sighash_ecdsa(0, &mut cache).expect("PSBT sighash");
         let signature = secp.sign_ecdsa(&message, secret);
-        let derived_key =
-            PublicKey::new(SecpPublicKey::from_secret_key(&secp, secret));
+        let derived_key = PublicKey::new(SecpPublicKey::from_secret_key(&secp, secret));
         signed.inputs[0].partial_sigs.insert(
             map_key.unwrap_or(derived_key),
             ecdsa::Signature {
@@ -481,10 +475,11 @@ mod tests {
 
         let mut maker_signed = sign_copy(&psbt, &maker_secret, None);
         let taker_signed = sign_copy(&psbt, &taker_secret, None);
-        maker_signed.combine(taker_signed).expect("combine signatures");
+        maker_signed
+            .combine(taker_signed)
+            .expect("combine signatures");
 
-        let report =
-            validate_regtest_psbt(&maker_signed, &intent).expect("both signatures valid");
+        let report = validate_regtest_psbt(&maker_signed, &intent).expect("both signatures valid");
         assert_eq!(report.verified_signatures, 2);
         assert!(report.ready_for_two_party_finalize);
 
@@ -542,8 +537,7 @@ mod tests {
     #[test]
     fn rejects_a_mismatched_prevout_commitment() {
         let (mut psbt, intent, _, _, _, _, _) = fixture();
-        psbt.inputs[0].witness_utxo.as_mut().expect("UTXO").value =
-            Amount::from_sat(99_999);
+        psbt.inputs[0].witness_utxo.as_mut().expect("UTXO").value = Amount::from_sat(99_999);
         assert_eq!(
             validate_regtest_psbt(&psbt, &intent),
             Err(PsbtPolicyError::PrevoutMismatch)

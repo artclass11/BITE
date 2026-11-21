@@ -31,7 +31,7 @@ Stop the node but keep the local test data:
 Remove the disposable chain, wallet, cookie and observer test files:
 
     docker compose --project-name bite-stage2-regtest --file contrib/regtest/compose.yaml down --volumes
-    rm -rf .bite-regtest-data
+    rm -rf .bite-regtest-data /tmp/bite-observer-test
 
 In CI, the entire temporary data directory is removed in an unconditional cleanup step.
 

@@ -45,9 +45,11 @@ jobs:
         run: npm test
 
   bitcoin-regtest-smoke:
-    name: Bitcoin Core regtest smoke test
+    name: Bitcoin Core regtest observer integration
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
+    env:
+      BITE_REGTEST_DATA_DIR: ${{ runner.temp }}/bite-regtest-data
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -57,4 +59,6 @@ jobs:
         run: bash scripts/regtest-smoke.sh
       - name: Remove disposable regtest container and data
         if: always()
-        run: docker compose --project-name bite-stage2-regtest --file contrib/regtest/compose.yaml down --volumes
+        run: |
+          docker compose --project-name bite-stage2-regtest --file contrib/regtest/compose.yaml down --volumes
+          rm -rf "$BITE_REGTEST_DATA_DIR"

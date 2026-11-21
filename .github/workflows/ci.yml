@@ -63,4 +63,4 @@ jobs:
         if: always()
         run: |
           docker compose --project-name bite-stage2-regtest --file contrib/regtest/compose.yaml down --volumes
-          rm -rf "$BITE_REGTEST_DATA_DIR" "$BITE_OBSERVER_TMP_DIR"
+          sudo rm -rf "$BITE_REGTEST_DATA_DIR" "$BITE_OBSERVER_TMP_DIR"
